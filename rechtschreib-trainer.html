@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rechtschreib-Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f4ff;
+  --card: #ffffff;
+  --text: #1e1e2e;
+  --muted: #8888aa;
+  --shadow: 0 6px 24px rgba(80,80,180,0.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); overflow-x: hidden; }
+
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ── MENU ── */
+#menu-screen { background: linear-gradient(160deg, #667eea 0%, #a78bfa 60%, #f472b6 100%); padding: 0; }
+.menu-top { width: 100%; padding: 48px 24px 32px; text-align: center; }
+.menu-top h1 { font-family: 'Baloo 2', cursive; font-size: clamp(2rem, 7vw, 3.2rem); color: white; text-shadow: 0 3px 12px rgba(0,0,0,.2); }
+.menu-top p { color: rgba(255,255,255,.85); font-size: 1.05rem; font-weight: 700; margin-top: 8px; }
+.menu-wave { width: 100%; flex: 1; background: var(--bg); border-radius: 36px 36px 0 0; padding: 32px 20px 60px; }
+.menu-wave h2 { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: var(--muted); text-align: center; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 24px; }
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; max-width: 700px; margin: 0 auto 28px; }
+.topic-btn { background: white; border: 2.5px solid transparent; border-radius: 20px; padding: 18px 12px 14px; cursor: pointer; text-align: center; transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, border-color .2s; box-shadow: 0 3px 12px rgba(0,0,0,.07); position: relative; overflow: hidden; }
+.topic-btn::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: var(--c, #667eea); border-radius: 18px 18px 0 0; }
+.topic-btn:hover { transform: translateY(-5px) scale(1.03); box-shadow: 0 10px 28px rgba(100,100,220,.18); border-color: var(--c, #667eea); }
+.topic-btn .t-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+.topic-btn .t-name { font-weight: 800; font-size: .92rem; line-height: 1.3; color: var(--text); }
+.topic-btn .t-count { font-size: .73rem; color: var(--muted); font-weight: 700; margin-top: 3px; }
+.start-all-btn { display: block; width: 100%; max-width: 360px; margin: 0 auto; padding: 18px; background: linear-gradient(135deg, #667eea, #a78bfa); color: white; border: none; border-radius: 50px; font-family: 'Baloo 2', cursive; font-size: 1.3rem; cursor: pointer; box-shadow: 0 6px 0 rgba(80,40,180,.35); transition: transform .15s, box-shadow .15s; }
+.start-all-btn:hover { transform: translateY(-3px); box-shadow: 0 9px 0 rgba(80,40,180,.35); }
+
+/* ── GAME ── */
+#game-screen { justify-content: flex-start; padding: 0; }
+.topbar { width: 100%; background: white; padding: 14px 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.07); position: sticky; top: 0; z-index: 20; }
+.back-btn { background: #f0f0fa; border: none; border-radius: 50px; padding: 8px 16px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: .88rem; cursor: pointer; color: #555; white-space: nowrap; transition: background .15s; }
+.back-btn:hover { background: #e0e0f5; }
+.topbar-mid { flex: 1; min-width: 0; }
+.topbar-title { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-sub { font-size: .74rem; color: var(--muted); font-weight: 700; }
+.score-pill { background: linear-gradient(135deg, #667eea, #a78bfa); color: white; border-radius: 50px; padding: 6px 14px; font-weight: 800; font-size: .95rem; white-space: nowrap; }
+.prog-bar { width: 100%; height: 8px; background: #eee; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, #667eea, #f472b6); transition: width .4s ease; border-radius: 0 4px 4px 0; }
+.game-body { width: 100%; max-width: 620px; padding: 28px 20px 60px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+.repeat-badge { background: linear-gradient(135deg, #f472b6, #fb923c); color: white; border-radius: 50px; padding: 7px 20px; font-family: 'Baloo 2', cursive; font-size: 1rem; font-weight: 800; animation: badgePop .4s cubic-bezier(.34,1.56,.64,1); display: flex; align-items: center; gap: 8px; }
+@keyframes badgePop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+
+/* Question card */
+.q-card { background: white; border-radius: 28px; padding: 28px 24px; width: 100%; box-shadow: var(--shadow); text-align: center; }
+.q-topic-pill { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: .73rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; }
+
+/* Focus highlight – the tricky part of the word */
+.focus-label { font-size: .8rem; font-weight: 800; color: var(--muted); margin-bottom: 6px; letter-spacing: .5px; }
+.q-sentence { font-size: clamp(1rem, 3.5vw, 1.2rem); font-weight: 700; color: #333; line-height: 1.7; }
+.q-sentence .blank { display: inline-block; border-bottom: 3px solid #667eea; min-width: 80px; color: #667eea; font-weight: 800; padding: 0 4px; }
+
+/* Options */
+.opts { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; width: 100%; }
+.opt-btn {
+  flex: 1; min-width: 110px; max-width: 220px;
+  padding: 16px 12px;
+  background: white; border: 2.5px solid #dde; border-radius: 20px;
+  font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 800;
+  cursor: pointer;
+  transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s, background .15s;
+  box-shadow: 0 3px 10px rgba(0,0,0,.06);
+  line-height: 1.4;
+}
+/* Highlight the tricky letters in options */
+.opt-btn .hi { color: #667eea; text-decoration: underline; text-underline-offset: 3px; }
+.opt-btn:hover:not(:disabled) { transform: translateY(-4px) scale(1.04); border-color: #667eea; background: #f5f3ff; }
+.opt-btn:disabled { cursor: default; }
+.opt-btn.correct { background: #e8faf0; border-color: #22c55e; animation: correctPop .45s cubic-bezier(.34,1.56,.64,1); }
+.opt-btn.wrong { background: #fff0f0; border-color: #f87171; animation: wrongShake .38s ease; }
+.opt-btn.reveal { background: #e8faf0; border-color: #22c55e; }
+@keyframes correctPop { 0%{transform:scale(1)} 55%{transform:scale(1.1)} 100%{transform:scale(1)} }
+@keyframes wrongShake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 75%{transform:translateX(7px)} }
+
+/* Feedback */
+.feedback-area { min-height: 80px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.fb-msg { font-family: 'Baloo 2', cursive; font-size: 1.25rem; padding: 10px 24px; border-radius: 16px; animation: popIn .3s ease; text-align: center; }
+.fb-msg.good { background: #dcfce7; color: #166534; }
+.fb-msg.bad  { background: #fee2e2; color: #991b1b; }
+@keyframes popIn { from{transform:scale(.5);opacity:0} 80%{transform:scale(1.05)} to{transform:scale(1);opacity:1} }
+.next-btn { background: linear-gradient(135deg, #667eea, #a78bfa); color: white; border: none; border-radius: 50px; padding: 13px 38px; font-family: 'Baloo 2', cursive; font-size: 1.15rem; cursor: pointer; box-shadow: 0 5px 0 rgba(80,30,180,.3); transition: transform .15s, box-shadow .15s; animation: popIn .3s ease; }
+.next-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 0 rgba(80,30,180,.3); }
+
+/* ── RESULT ── */
+#result-screen { background: linear-gradient(160deg, #667eea 0%, #a78bfa 60%, #f472b6 100%); justify-content: center; padding: 40px 20px; gap: 20px; }
+.result-card { background: white; border-radius: 32px; padding: 40px 32px; max-width: 460px; width: 100%; text-align: center; box-shadow: 0 16px 40px rgba(0,0,0,.15); }
+.result-emoji { font-size: 4.5rem; display: block; animation: bounce 1s ease infinite; margin-bottom: 4px; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+.result-title { font-family: 'Baloo 2', cursive; font-size: 2.2rem; margin-bottom: 6px; }
+.result-score { font-family: 'Baloo 2', cursive; font-size: 3.8rem; font-weight: 800; background: linear-gradient(135deg,#667eea,#f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
+.result-stars { font-size: 2.2rem; letter-spacing: 8px; margin: 10px 0; }
+.result-sub { color: var(--muted); font-weight: 700; font-size: .95rem; }
+.wrong-summary { background: #fff7ed; border-radius: 20px; padding: 18px 20px; max-width: 460px; width: 100%; }
+.wrong-summary h3 { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: #92400e; margin-bottom: 12px; }
+.wrong-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.wrong-chip { background: white; border: 2px solid #fbbf24; border-radius: 12px; padding: 6px 14px; font-weight: 800; font-size: .95rem; color: #78350f; }
+.result-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.btn-main { background: white; color: #667eea; border: none; border-radius: 50px; padding: 14px 28px; font-family: 'Baloo 2', cursive; font-size: 1.1rem; cursor: pointer; box-shadow: 0 5px 0 rgba(0,0,0,.12); transition: transform .15s; }
+.btn-main:hover { transform: translateY(-3px); }
+.btn-ghost { background: rgba(255,255,255,.25); color: white; border: 2px solid rgba(255,255,255,.6); border-radius: 50px; padding: 14px 28px; font-family: 'Baloo 2', cursive; font-size: 1.1rem; cursor: pointer; }
+.btn-ghost:hover { background: rgba(255,255,255,.38); }
+.cp { position:fixed; width:10px; height:13px; border-radius:2px; animation: cf 3s ease-in forwards; z-index:9999; pointer-events:none; }
+@keyframes cf { 0%{transform:translateY(-10px) rotateZ(0);opacity:1} 100%{transform:translateY(110vh) rotateZ(720deg);opacity:0} }
+@media(max-width:480px) { .topic-grid { grid-template-columns: repeat(3,1fr); } .opt-btn { font-size:1rem; padding:13px 8px; } }
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div class="screen active" id="menu-screen">
+  <div class="menu-top">
+    <h1>✏️ Rechtschreib-<br>Trainer</h1>
+    <p>Wähle ein Thema oder übe alles!</p>
+  </div>
+  <div class="menu-wave">
+    <h2>📚 Themen wählen</h2>
+    <div class="topic-grid" id="topic-grid"></div>
+    <button class="start-all-btn" onclick="startGame('all')">🚀 Alle Themen üben</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="game-screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goMenu()">← Menü</button>
+    <div class="topbar-mid">
+      <div class="topbar-title" id="tb-title">Thema</div>
+      <div class="topbar-sub" id="tb-sub">Frage 1 / 10</div>
+    </div>
+    <div class="score-pill">⭐ <span id="tb-score">0</span></div>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  <div class="game-body">
+    <div id="repeat-slot"></div>
+    <div class="q-card">
+      <div class="q-topic-pill" id="q-pill"></div>
+      <div class="focus-label" id="focus-label"></div>
+      <div class="q-sentence" id="q-sentence"></div>
+    </div>
+    <div class="opts" id="opts"></div>
+    <div class="feedback-area" id="feedback-area"></div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="result-screen">
+  <div class="result-card">
+    <span class="result-emoji" id="r-emoji">🏆</span>
+    <div class="result-title" id="r-title">Super!</div>
+    <div class="result-score" id="r-score">8/10</div>
+    <div class="result-stars" id="r-stars">⭐⭐⭐</div>
+    <div class="result-sub" id="r-sub"></div>
+  </div>
+  <div class="wrong-summary" id="wrong-summary" style="display:none">
+    <h3>🔁 Diese Wörter nochmal üben:</h3>
+    <div class="wrong-list" id="wrong-list"></div>
+  </div>
+  <div class="result-btns">
+    <button class="btn-main" id="r-retry-wrong" onclick="retryWrong()">🔁 Falsche wiederholen</button>
+    <button class="btn-main" onclick="retryAll()">🔄 Nochmal</button>
+    <button class="btn-ghost" onclick="goMenu()">🏠 Menü</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// HILFSFUNKTION: hebt den Fokus-Teil im Wort hervor
+// z.B. hi("Pferd", "Pf") → "<span class='hi'>Pf</span>erd"
+// ══════════════════════════════════════════════════════════════
+function hi(word, part) {
+  if (!part) return word;
+  // case-insensitive replace first occurrence
+  const idx = word.toLowerCase().indexOf(part.toLowerCase());
+  if (idx === -1) return word;
+  return word.slice(0, idx) +
+    `<span class='hi'>${word.slice(idx, idx + part.length)}</span>` +
+    word.slice(idx + part.length);
+}
+
+// ══════════════════════════════════════════════════════════════
+// WÖRTER-DATEN – echte Wörter aus dem Matobe-Dokument
+// focus: der Buchstabenteil, der unterstrichen wird
+// options: [richtig, falsch1, falsch2] – falsche gezielt auf
+//          den Fokus-Teil ausgerichtet
+// ══════════════════════════════════════════════════════════════
+const TOPICS = [
+
+  // ── PF ──────────────────────────────────────────────────────
+  {
+    id:"pf", name:"Wörter mit PF", icon:"🐘", color:"#f97316", cLight:"#fff7ed", cText:"#9a3412",
+    focus:"pf", focusLabel:"Schreibt man es mit PF oder nur F?",
+    words:[
+      { w:"Kopf",     opts:["Kopf","Kof","Kopff"],        s:"Mein ___ tut weh.",                focus:"pf" },
+      { w:"Pflanze",  opts:["Pflanze","Flanze","Pflantze"],s:"Die ___ braucht Wasser.",           focus:"Pfl" },
+      { w:"pflücken", opts:["pflücken","flücken","phlücken"],s:"Wir ___ Erdbeeren.",              focus:"pfl" },
+      { w:"Pfanne",   opts:["Pfanne","Fanne","Pfannne"],   s:"Das Ei brutzelt in der ___.",       focus:"Pf" },
+      { w:"pfeifen",  opts:["pfeifen","feifen","pheifen"], s:"Der Vogel kann ___.",               focus:"pf" },
+      { w:"Pfeil",    opts:["Pfeil","Feil","Pfail"],       s:"Der ___ trifft die Scheibe.",       focus:"Pf" },
+      { w:"pflegen",  opts:["pflegen","flegen","phlegen"], s:"Ich ___ mein Haustier.",            focus:"pfl" },
+      { w:"Pfote",    opts:["Pfote","Fote","Pfothe"],      s:"Die Katze gibt mir die ___.",       focus:"Pf" },
+      { w:"Pfeife",   opts:["Pfeife","Feife","Phäife"],    s:"Der Schiedsrichter pfeift auf der ___.", focus:"Pf" },
+      { w:"Pferd",    opts:["Pferd","Ferd","Pherd"],       s:"Das ___ galoppiert.",               focus:"Pf" },
+      { w:"Pfütze",   opts:["Pfütze","Fütze","Phütze"],    s:"Das Kind springt in die ___.",     focus:"Pf" },
+      { w:"Topf",     opts:["Topf","Topff","Tof"],         s:"Im ___ kocht die Suppe.",           focus:"pf" },
+      { w:"Pfirsich", opts:["Pfirsich","Firsich","Phirsich"],s:"Der ___ ist saftig süß.",        focus:"Pf" },
+      { w:"Zopf",     opts:["Zopf","Zof","Zopff"],         s:"Sie trägt einen langen ___.",       focus:"pf" },
+      { w:"pfiffig",  opts:["pfiffig","fiffig","phiffig"], s:"Das ist eine ___ Idee!",            focus:"pf" },
+    ]
+  },
+
+  // ── SP ──────────────────────────────────────────────────────
+  {
+    id:"sp", name:"Wörter mit SP", icon:"🌟", color:"#eab308", cLight:"#fefce8", cText:"#854d0e",
+    focus:"sp", focusLabel:"Schreibt man es mit SP oder SCH + P?",
+    words:[
+      { w:"sparen",    opts:["sparen","schparen","szparen"],  s:"Ich ___ mein Taschengeld.",         focus:"sp" },
+      { w:"Spiel",     opts:["Spiel","Schpiel","Spihel"],     s:"Das ___ macht Spaß.",               focus:"Sp" },
+      { w:"Sport",     opts:["Sport","Schport","Sbort"],      s:"___ hält uns gesund.",              focus:"Sp" },
+      { w:"sprechen",  opts:["sprechen","schprechen","sbrächen"],s:"Wir ___ leise.",                 focus:"spr" },
+      { w:"Spinne",    opts:["Spinne","Schpinne","Sbinne"],   s:"Die ___ spinnt ein Netz.",          focus:"Sp" },
+      { w:"spielen",   opts:["spielen","schpielen","sbielen"],s:"Die Kinder ___ draußen.",           focus:"sp" },
+      { w:"Spiegel",   opts:["Spiegel","Schpiegel","Sbigel"], s:"Ich schaue in den ___.",            focus:"Sp" },
+      { w:"Spatz",     opts:["Spatz","Schpatz","Sbatz"],      s:"Der kleine ___ singt.",             focus:"Sp" },
+      { w:"spannend",  opts:["spannend","schpannend","zbannend"],s:"Das Buch ist sehr ___.",         focus:"sp" },
+      { w:"Spielzeug", opts:["Spielzeug","Schpielzeug","Sbielzeug"],s:"Das ___ liegt auf dem Boden.",focus:"Sp" },
+      { w:"Sprung",    opts:["Sprung","Schprung","Sbrung"],   s:"Der ___ über die Pfütze gelingt.", focus:"Spr" },
+      { w:"springen",  opts:["springen","schpringen","sbringen"],s:"Wir ___ über den Bach.",        focus:"spr" },
+      { w:"sparsam",   opts:["sparsam","schparsam","sbarsam"],s:"Er ist sehr ___ .",                focus:"sp" },
+      { w:"Spur",      opts:["Spur","Schpur","Sbur"],         s:"Der Fuchs hinterlässt eine ___.",  focus:"Sp" },
+      { w:"spüren",    opts:["spüren","schpüren","sbüren"],   s:"Ich ___ die Kälte.",               focus:"sp" },
+    ]
+  },
+
+  // ── ST ──────────────────────────────────────────────────────
+  {
+    id:"st", name:"Wörter mit ST", icon:"⭐", color:"#84cc16", cLight:"#f7fee7", cText:"#365314",
+    focus:"st", focusLabel:"Schreibt man es mit ST oder SCHT?",
+    words:[
+      { w:"Stein",     opts:["Stein","Schtein","Sdein"],    s:"Der ___ liegt auf dem Weg.",          focus:"St" },
+      { w:"Stern",     opts:["Stern","Schtern","Sdärn"],    s:"Am Himmel leuchtet ein ___.",         focus:"St" },
+      { w:"Stunde",    opts:["Stunde","Schtunde","Sdunde"], s:"Eine ___ hat 60 Minuten.",            focus:"St" },
+      { w:"stark",     opts:["stark","schtark","sdark"],    s:"Der Löwe ist sehr ___.",              focus:"st" },
+      { w:"stehen",    opts:["stehen","schtehen","sdehen"], s:"Wir ___ an der Ampel.",              focus:"st" },
+      { w:"stinken",   opts:["stinken","schtinken","sdingken"],s:"Der Käse ___ .",                  focus:"st" },
+      { w:"Stift",     opts:["Stift","Schtift","Sdift"],    s:"Ich brauche einen neuen ___.",       focus:"St" },
+      { w:"stolz",     opts:["stolz","schtotz","sdolz"],    s:"Ich bin ___ auf dich.",              focus:"st" },
+      { w:"Stück",     opts:["Stück","Schtück","Sdück"],    s:"Ich möchte ein ___ Kuchen.",         focus:"St" },
+      { w:"Sturm",     opts:["Sturm","Schturm","Sdurm"],    s:"Der ___ wütet draußen.",             focus:"St" },
+      { w:"Stuhl",     opts:["Stuhl","Schtuhl","Sduhl"],    s:"Ich sitze auf dem ___.",             focus:"St" },
+      { w:"stecken",   opts:["stecken","schtecken","sdecen"],s:"Wo ___ meine Schlüssel?",          focus:"st" },
+      { w:"steigen",   opts:["steigen","schteigen","sdeigen"],s:"Wir ___ auf den Berg.",            focus:"st" },
+      { w:"strahlen",  opts:["strahlen","schtralen","sdralen"],s:"Die Sonne ___ warm.",            focus:"str" },
+      { w:"Stoff",     opts:["Stoff","Schtoff","Sdoff"],    s:"Das Kleid ist aus weichem ___.",    focus:"St" },
+    ]
+  },
+
+  // ── IE ──────────────────────────────────────────────────────
+  {
+    id:"ie", name:"Wörter mit ie", icon:"👁️", color:"#06b6d4", cLight:"#ecfeff", cText:"#155e75",
+    focus:"ie", focusLabel:"Schreibt man es mit IE oder nur I?",
+    words:[
+      { w:"Biene",     opts:["Biene","Bine","Bihne"],       s:"Die ___ sammelt Honig.",             focus:"ie" },
+      { w:"lieben",    opts:["lieben","liben","lihben"],     s:"Kinder ___ Tiere.",                  focus:"ie" },
+      { w:"liegen",    opts:["liegen","ligen","lihgen"],     s:"Das Buch ___ auf dem Tisch.",        focus:"ie" },
+      { w:"sieben",    opts:["sieben","siben","sihben"],     s:"Ich habe ___ Bücher.",               focus:"ie" },
+      { w:"tief",      opts:["tief","tif","tihf"],           s:"Der See ist sehr ___.",              focus:"ie" },
+      { w:"Wiese",     opts:["Wiese","Wise","Wihse"],        s:"Auf der ___ blühen Blumen.",         focus:"ie" },
+      { w:"Ziege",     opts:["Ziege","Zige","Zihge"],        s:"Die ___ meckert laut.",              focus:"ie" },
+      { w:"Brief",     opts:["Brief","Brif","Brihf"],        s:"Ich schreibe einen ___.",            focus:"ie" },
+      { w:"riechen",   opts:["riechen","richen","rihchen"],  s:"Die Blume ___ schön.",               focus:"ie" },
+      { w:"spielen",   opts:["spielen","spilen","spihlen"],  s:"Wir ___ auf dem Schulhof.",          focus:"ie" },
+      { w:"Tier",      opts:["Tier","Tir","Tihr"],           s:"Das ___ im Zoo schläft.",            focus:"ie" },
+      { w:"ziehen",    opts:["ziehen","zihen","zihn"],       s:"Wir ___ an dem Seil.",               focus:"ie" },
+      { w:"Beispiel",  opts:["Beispiel","Beisbil","Beisbiel"],s:"Das ist ein gutes ___.",            focus:"ie" },
+      { w:"Zwiebel",   opts:["Zwiebel","Zwibel","Zwihbel"],  s:"Die ___ macht uns weinen.",         focus:"ie" },
+      { w:"schwierig", opts:["schwierig","schwierig","schwirig"],s:"Die Aufgabe ist sehr ___.",     focus:"ie" },
+    ]
+  },
+
+  // ── CK ──────────────────────────────────────────────────────
+  {
+    id:"ck", name:"Wörter mit CK", icon:"🧱", color:"#8b5cf6", cLight:"#f5f3ff", cText:"#4c1d95",
+    focus:"ck", focusLabel:"Schreibt man es mit CK oder nur K?",
+    words:[
+      { w:"Glück",     opts:["Glück","Glük","Glükk"],       s:"Das war echtes ___!",               focus:"ck" },
+      { w:"glücklich", opts:["glücklich","glüklich","glüclich"],s:"Das Kind ist sehr ___.",         focus:"ck" },
+      { w:"Schreck",   opts:["Schreck","Schrek","Schrekk"],  s:"Der ___ war groß.",                 focus:"ck" },
+      { w:"erschrecken",opts:["erschrecken","erschreken","erschreckken"],s:"Der Hund kann ___.",    focus:"ck" },
+      { w:"Stück",     opts:["Stück","Stük","Stükk"],        s:"Ein ___ Kuchen bitte!",             focus:"ck" },
+      { w:"verstecken",opts:["verstecken","versteken","versteckken"],s:"Wir ___ uns beim Spielen.", focus:"ck" },
+      { w:"Rucksack",  opts:["Rucksack","Ruksack","Rucksak"],s:"Mein ___ ist sehr schwer.",        focus:"ck" },
+      { w:"backen",    opts:["backen","baken","backken"],    s:"Wir ___ einen Kuchen.",             focus:"ck" },
+      { w:"Brücke",    opts:["Brücke","Brüke","Brükke"],     s:"Wir gehen über die ___.",           focus:"ck" },
+      { w:"dick",      opts:["dick","dik","dikk"],           s:"Das Buch ist sehr ___.",            focus:"ck" },
+      { w:"Fleck",     opts:["Fleck","Flek","Flekk"],        s:"Da ist ein ___ auf dem Hemd.",      focus:"ck" },
+      { w:"Jacke",     opts:["Jacke","Jake","Jakke"],        s:"Ich ziehe meine ___ an.",           focus:"ck" },
+      { w:"trocken",   opts:["trocken","troken","trockken"], s:"Das Handtuch ist noch nicht ___.",  focus:"ck" },
+      { w:"Rock",      opts:["Rock","Rok","Rokk"],           s:"Sie trägt einen bunten ___.",       focus:"ck" },
+      { w:"zurück",    opts:["zurück","zurük","zurükk"],     s:"Komm bald ___!",                    focus:"ck" },
+    ]
+  },
+
+  // ── V ───────────────────────────────────────────────────────
+  {
+    id:"v", name:"Wörter mit V/v", icon:"🔤", color:"#ec4899", cLight:"#fdf2f8", cText:"#831843",
+    focus:"v", focusLabel:"Schreibt man es mit V oder F oder W?",
+    words:[
+      { w:"Vase",       opts:["Vase","Fase","Wase"],          s:"Die ___ steht auf dem Tisch.",       focus:"V" },
+      { w:"viel",       opts:["viel","fiel","wiel"],          s:"Es gibt ___ zu lernen.",             focus:"v" },
+      { w:"Vater",      opts:["Vater","Fater","Wather"],      s:"Mein ___ liest die Zeitung.",        focus:"V" },
+      { w:"verstehen",  opts:["verstehen","ferstehen","werstehen"],s:"Ich ___ die Aufgabe.",          focus:"v" },
+      { w:"vielleicht", opts:["vielleicht","fielleicht","wielleicht"],s:"___ kommt er morgen.",       focus:"v" },
+      { w:"vier",       opts:["vier","fier","wier"],          s:"Ich habe ___ Geschwister.",          focus:"v" },
+      { w:"voll",       opts:["voll","foll","woll"],          s:"Das Glas ist ___.",                  focus:"v" },
+      { w:"Vogel",      opts:["Vogel","Fogel","Wogel"],       s:"Der ___ singt im Baum.",             focus:"V" },
+      { w:"verstecken", opts:["verstecken","ferstecken","werstecken"],s:"Wir ___ die Geschenke.",    focus:"v" },
+      { w:"vor",        opts:["vor","for","wor"],             s:"Stelle dich ___ mich.",              focus:"v" },
+      { w:"verbinden",  opts:["verbinden","ferbinden","werbinden"],s:"Ich ___ die Wunde.",           focus:"v" },
+      { w:"verlassen",  opts:["verlassen","ferlassen","werlassen"],s:"Ich ___ das Haus.",            focus:"v" },
+      { w:"verpassen",  opts:["verpassen","ferpassen","werpassen"],s:"Ich möchte den Zug nicht ___.",focus:"v" },
+      { w:"Vers",       opts:["Vers","Fers","Wers"],          s:"Sie liest einen ___.",              focus:"V" },
+      { w:"Vorfahrt",   opts:["Vorfahrt","Forfahrt","Worfahrt"],s:"Achte auf die ___!",              focus:"V" },
+    ]
+  },
+
+  // ── SS ──────────────────────────────────────────────────────
+  {
+    id:"ss", name:"Wörter mit ss", icon:"📝", color:"#14b8a6", cLight:"#f0fdfa", cText:"#134e4a",
+    focus:"ss", focusLabel:"Schreibt man es mit SS oder ß oder nur S?",
+    words:[
+      { w:"essen",     opts:["essen","eßen","esen"],        s:"Wir ___ Mittagessen.",               focus:"ss" },
+      { w:"Klasse",    opts:["Klasse","Klaße","Klase"],     s:"Unsere ___ macht einen Ausflug.",    focus:"ss" },
+      { w:"lassen",    opts:["lassen","laßen","lasen"],     s:"Ich ___ das Buch liegen.",           focus:"ss" },
+      { w:"wissen",    opts:["wissen","wißen","wisen"],     s:"Ich ___ die Antwort.",               focus:"ss" },
+      { w:"Wasser",    opts:["Wasser","Waßer","Wazer"],     s:"Ich trinke viel ___.",               focus:"ss" },
+      { w:"nass",      opts:["nass","naß","nas"],           s:"Meine Schuhe sind ___.",             focus:"ss" },
+      { w:"vergessen", opts:["vergessen","vergeßen","vergesen"],s:"Ich habe mein Heft ___.",        focus:"ss" },
+      { w:"Schlüssel", opts:["Schlüssel","Schlüßel","Schlüsel"],s:"Mein ___ ist weg.",              focus:"ss" },
+      { w:"Tasse",     opts:["Tasse","Taße","Tase"],        s:"Die ___ Tee ist heiß.",              focus:"ss" },
+      { w:"müssen",    opts:["müssen","müßen","müsen"],     s:"Wir ___ jetzt gehen.",               focus:"ss" },
+      { w:"flüssig",   opts:["flüssig","flüßig","flüsig"], s:"Wasser ist ___.",                    focus:"ss" },
+      { w:"Nuss",      opts:["Nuss","Nuß","Nus"],           s:"Das Eichhörnchen knabbert an der ___.focus:","focus":"ss" },
+      { w:"passen",    opts:["passen","paßen","pasen"],     s:"Die Schuhe ___ mir gut.",            focus:"ss" },
+      { w:"hässlich",  opts:["hässlich","häßlich","häslich"],s:"Das Wetter ist heute ___.",         focus:"ss" },
+      { w:"Fluss",     opts:["Fluss","Fluß","Flus"],        s:"Im ___ schwimmen Fische.",           focus:"ss" },
+    ]
+  },
+
+  // ── AUSLAUTVERHÄRTUNG B ─────────────────────────────────────
+  {
+    id:"auslaut_b", name:"Auslautverhärtung b", icon:"🔴", color:"#ef4444", cLight:"#fef2f2", cText:"#7f1d1d",
+    focus:"b", focusLabel:"Am Ende: schreibt man B oder P?",
+    words:[
+      { w:"Bub",       opts:["Bub","Bup","Bubb"],           s:"Der kleine ___ spielt.",             focus:"b" },
+      { w:"gelb",      opts:["gelb","gelp","gelbb"],        s:"Die Banane ist ___.",                focus:"b" },
+      { w:"Dieb",      opts:["Dieb","Diep","Diebb"],        s:"Der ___ wurde gefasst.",             focus:"b" },
+      { w:"Sieb",      opts:["Sieb","Siep","Siebb"],        s:"Das Wasser fließt durch das ___.",   focus:"b" },
+      { w:"halb",      opts:["halb","halp","halbb"],        s:"Ich bin ___ fertig.",                focus:"b" },
+      { w:"lieb",      opts:["lieb","liep","liebb"],        s:"Das ist ein ___ es Kind.",           focus:"b" },
+      { w:"taub",      opts:["taub","taup","taubb"],        s:"Er ist auf einem Ohr ___.",          focus:"b" },
+      { w:"Raub",      opts:["Raub","Raup","Raubb"],        s:"Der ___ wurde gemeldet.",            focus:"b" },
+      { w:"grob",      opts:["grob","grop","grobb"],        s:"Sei nicht so ___ !",                focus:"b" },
+      { w:"Korb",      opts:["Korb","Korp","Korbb"],        s:"Im ___ liegen Äpfel.",              focus:"b" },
+      { w:"bleiben",   opts:["bleiben","blaiben","bleibn"], s:"Ich ___ zu Hause.",                 focus:"b" },
+      { w:"schreiben", opts:["schreiben","schraiben","schreibn"],s:"Ich ___ einen Brief.",         focus:"b" },
+      { w:"geben",     opts:["geben","gäben","gebn"],       s:"Ich ___ dir das Buch.",             focus:"b" },
+      { w:"leben",     opts:["leben","läben","lebn"],       s:"Tiere ___ im Wald.",                focus:"b" },
+      { w:"üben",      opts:["üben","übben","übn"],         s:"Ich muss Lesen ___.",               focus:"b" },
+    ]
+  },
+
+  // ── AUSLAUTVERHÄRTUNG D ─────────────────────────────────────
+  {
+    id:"auslaut_d", name:"Auslautverhärtung d", icon:"🟠", color:"#f97316", cLight:"#fff7ed", cText:"#7c2d12",
+    focus:"d", focusLabel:"Am Ende: schreibt man D oder T?",
+    words:[
+      { w:"Bild",      opts:["Bild","Bilt","Bildd"],        s:"Das ___ hängt an der Wand.",        focus:"d" },
+      { w:"gesund",    opts:["gesund","gesunt","gesundd"],  s:"Obst ist ___ .",                    focus:"d" },
+      { w:"Hund",      opts:["Hund","Hunt","Hundd"],        s:"Der ___ bellt laut.",               focus:"d" },
+      { w:"Abend",     opts:["Abend","Abent","Abendd"],     s:"Am ___ lesen wir.",                 focus:"d" },
+      { w:"Rad",       opts:["Rad","Rat","Radd"],           s:"Das ___ ist kaputt.",               focus:"d" },
+      { w:"Freund",    opts:["Freund","Freunt","Freundd"],  s:"Mein ___ heißt Paul.",              focus:"d" },
+      { w:"fremd",     opts:["fremd","fremt","fremdd"],     s:"Der Mann ist mir ___.",             focus:"d" },
+      { w:"Wind",      opts:["Wind","Wint","Windd"],        s:"Der ___ bläst kalt.",               focus:"d" },
+      { w:"Kind",      opts:["Kind","Kint","Kindd"],        s:"Das ___ lacht fröhlich.",           focus:"d" },
+      { w:"rund",      opts:["rund","runt","rundd"],        s:"Der Ball ist ___.",                 focus:"d" },
+      { w:"Kleid",     opts:["Kleid","Kleit","Kleidd"],     s:"Das ___ ist sehr bunt.",            focus:"d" },
+      { w:"Geld",      opts:["Geld","Gelt","Geldd"],        s:"Ich brauche ___.",                  focus:"d" },
+      { w:"Hand",      opts:["Hand","Hant","Handd"],        s:"Gib mir deine ___.",                focus:"d" },
+      { w:"wild",      opts:["wild","wilt","wildd"],        s:"Das Tier ist sehr ___.",            focus:"d" },
+      { w:"Pferd",     opts:["Pferd","Pfert","Pferdd"],     s:"Das ___ galoppiert.",               focus:"d" },
+    ]
+  },
+
+  // ── DOPPELTE KONSONANTEN ────────────────────────────────────
+  {
+    id:"doppelkon", name:"Doppelte Konsonanten", icon:"✌️", color:"#f59e0b", cLight:"#fffbeb", cText:"#78350f",
+    focus:"", focusLabel:"Einfach oder doppelt geschrieben?",
+    words:[
+      { w:"dumm",      opts:["dumm","dum","dumb"],          s:"Das war eine ___ e Idee.",           focus:"mm" },
+      { w:"Füller",    opts:["Füller","Füler","Füllr"],     s:"Mein ___ schreibt blau.",            focus:"ll" },
+      { w:"kommen",    opts:["kommen","kommen","komen"],    s:"Wann ___ die Ferien?",              focus:"mm" },
+      { w:"schlimm",   opts:["schlimm","schlim","schlimp"], s:"Der Sturm ist ___.",                 focus:"mm" },
+      { w:"Himmel",    opts:["Himmel","Himel","Himml"],     s:"Der ___ ist blau.",                 focus:"mm" },
+      { w:"schnell",   opts:["schnell","schnel","schnäll"], s:"Das Auto fährt ___.",               focus:"ll" },
+      { w:"Sonne",     opts:["Sonne","Sone","Sonnn"],       s:"Die ___ scheint warm.",             focus:"nn" },
+      { w:"Sommer",    opts:["Sommer","Somer","Sommr"],     s:"Im ___ ist es heiß.",               focus:"mm" },
+      { w:"Zimmer",    opts:["Zimmer","Zimer","Zimmr"],     s:"Mein ___ ist aufgeräumt.",          focus:"mm" },
+      { w:"Mutter",    opts:["Mutter","Muter","Muttr"],     s:"Meine ___ kocht gut.",              focus:"tt" },
+      { w:"Mann",      opts:["Mann","Man","Mannt"],         s:"Der ___ liest die Zeitung.",        focus:"nn" },
+      { w:"kennen",    opts:["kennen","kenen","kennnen"],   s:"Ich ___ dieses Lied.",              focus:"nn" },
+      { w:"dünn",      opts:["dünn","dünn","dün"],          s:"Das Papier ist sehr ___.",          focus:"nn" },
+      { w:"dann",      opts:["dann","dan","dannn"],         s:"Was machen wir ___?",               focus:"nn" },
+      { w:"Teller",    opts:["Teller","Teler","Tellr"],     s:"Der ___ ist sauber.",               focus:"ll" },
+    ]
+  },
+
+  // ── Ä/ÄU ───────────────────────────────────────────────────
+  {
+    id:"ae", name:"Wörter mit Ä und Äu", icon:"🅰️", color:"#d946ef", cLight:"#fdf4ff", cText:"#701a75",
+    focus:"ä", focusLabel:"Schreibt man es mit Ä/Äu oder E/Eu?",
+    words:[
+      { w:"Äpfel",     opts:["Äpfel","Epfel","Aepfel"],     s:"Die ___ hängen am Baum.",           focus:"Ä" },
+      { w:"Bäume",     opts:["Bäume","Beume","Baume"],      s:"Im Park stehen viele ___.",         focus:"Äu" },
+      { w:"Häuser",    opts:["Häuser","Heuser","Hauser"],   s:"Die ___ sind sehr alt.",            focus:"Äu" },
+      { w:"Mäuse",     opts:["Mäuse","Meuse","Mause"],      s:"Die kleinen ___ schleichen.",       focus:"äu" },
+      { w:"Mädchen",   opts:["Mädchen","Medchen","Maedchen"],s:"Das ___ lacht fröhlich.",          focus:"ä" },
+      { w:"hält",      opts:["hält","hält","helt"],         s:"Er ___ das Seil fest.",             focus:"ä" },
+      { w:"Bäcker",    opts:["Bäcker","Becker","Baecker"],  s:"Beim ___ kaufen wir Brot.",         focus:"ä" },
+      { w:"fällt",     opts:["fällt","feltt","fallt"],      s:"Das Laub ___ im Herbst.",           focus:"ä" },
+      { w:"Länder",    opts:["Länder","Lender","Laender"],  s:"Wir lernen viele ___.",             focus:"ä" },
+      { w:"Männer",    opts:["Männer","Menner","Maenner"],  s:"Die ___ spielen Fußball.",          focus:"ä" },
+      { w:"Räder",     opts:["Räder","Reder","Raeder"],     s:"Die ___ des Autos sind rund.",      focus:"ä" },
+      { w:"stärker",   opts:["stärker","sterker","stärker"],s:"Er ist viel ___ .",                 focus:"ä" },
+      { w:"Wälder",    opts:["Wälder","Welder","Waelder"],  s:"Die ___ sind im Herbst bunt.",     focus:"ä" },
+      { w:"Käfig",     opts:["Käfig","Kefig","Kaefig"],     s:"Der Vogel sitzt im ___.",           focus:"ä" },
+      { w:"Märchen",   opts:["Märchen","Merchen","Maerchen"],s:"Ich höre gerne ___.",              focus:"ä" },
+    ]
+  },
+
+  // ── DEHNUNGS-H ─────────────────────────────────────────────
+  {
+    id:"dehn_h", name:"Dehnungs-H", icon:"🔍", color:"#0ea5e9", cLight:"#f0f9ff", cText:"#0c4a6e",
+    focus:"h", focusLabel:"Schreibt man es mit Dehnungs-H oder ohne H?",
+    words:[
+      { w:"Frühling",  opts:["Frühling","Früling","Frühlinng"],s:"Im ___ blühen die Blumen.",      focus:"üh" },
+      { w:"Jahr",      opts:["Jahr","Jar","Jaahr"],           s:"Das neue ___ beginnt.",            focus:"ah" },
+      { w:"Uhr",       opts:["Uhr","Ur","Uhr"],              s:"Meine ___ geht richtig.",           focus:"hr" },
+      { w:"Zahl",      opts:["Zahl","Zal","Zaal"],           s:"Die ___ 7 ist meine Glückszahl.",  focus:"ah" },
+      { w:"zahlen",    opts:["zahlen","zalen","zaalen"],      s:"Ich ___ an der Kasse.",            focus:"ah" },
+      { w:"zählen",    opts:["zählen","zälen","zaehlen"],    s:"Wir ___ bis zehn.",                focus:"äh" },
+      { w:"Zahn",      opts:["Zahn","Zan","Zaahn"],          s:"Der ___ wackelt.",                 focus:"ah" },
+      { w:"wahr",      opts:["wahr","war","waahr"],          s:"Das ist ___.",                     focus:"ah" },
+      { w:"erzählen",  opts:["erzählen","erzälen","erzaehlen"],s:"Ich ___ eine Geschichte.",       focus:"äh" },
+      { w:"mehr",      opts:["mehr","mer","mehr"],           s:"Ich will noch ___.",               focus:"eh" },
+      { w:"Rahmen",    opts:["Rahmen","Ramen","Raahmen"],    s:"Das Bild hängt im ___.",           focus:"ah" },
+      { w:"fahren",    opts:["fahren","faren","faahren"],    s:"Wir ___ mit dem Zug.",             focus:"ah" },
+      { w:"nehmen",    opts:["nehmen","nemen","neehmen"],    s:"Ich ___ das Buch mit.",            focus:"eh" },
+      { w:"sehr",      opts:["sehr","ser","sehrr"],          s:"Das ist ___ schön.",               focus:"eh" },
+      { w:"kühl",      opts:["kühl","kül","kuhl"],           s:"Das Wasser ist schön ___.",        focus:"üh" },
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let queue = [], repeatQueue = [], qIdx = 0, score = 0;
+let isRepeat = false, currentTopicId = null;
+let totalFirst = 0, allWrongWords = [];
+
+// ══════════════════════════════════════════════════════════════
+// MENU
+// ══════════════════════════════════════════════════════════════
+function buildMenu() {
+  const grid = document.getElementById('topic-grid');
+  TOPICS.forEach(t => {
+    const btn = document.createElement('div');
+    btn.className = 'topic-btn';
+    btn.style.setProperty('--c', t.color);
+    btn.innerHTML = `<span class="t-icon">${t.icon}</span>
+      <div class="t-name">${t.name}</div>
+      <div class="t-count">${t.words.length} Wörter</div>`;
+    btn.onclick = () => startGame(t.id);
+    grid.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// GAME
+// ══════════════════════════════════════════════════════════════
+function shuffle(a) { return [...a].sort(() => Math.random() - .5); }
+
+function startGame(topicId) {
+  currentTopicId = topicId;
+  isRepeat = false; repeatQueue = []; allWrongWords = []; score = 0;
+  if (topicId === 'all') {
+    queue = shuffle(TOPICS.flatMap(t => t.words.map(w => ({ ...w, topicId: t.id }))));
+  } else {
+    queue = shuffle(TOPICS.find(t => t.id === topicId).words.map(w => ({ ...w, topicId: topicId })));
+  }
+  totalFirst = queue.length; qIdx = 0;
+  showScreen('game-screen'); renderQ();
+}
+
+function startRepeatRound() {
+  isRepeat = true;
+  queue = shuffle([...repeatQueue]); repeatQueue = []; qIdx = 0;
+  renderQ();
+}
+
+function renderQ() {
+  const q = queue[qIdx];
+  const topic = TOPICS.find(t => t.id === q.topicId);
+  const total = queue.length;
+
+  document.getElementById('tb-title').textContent = isRepeat ? '🔁 Wiederholung' : topic.name;
+  document.getElementById('tb-sub').textContent = `Frage ${qIdx+1} / ${total}`;
+  document.getElementById('tb-score').textContent = score;
+  document.getElementById('prog-fill').style.width = (qIdx / total * 100) + '%';
+
+  document.getElementById('repeat-slot').innerHTML = isRepeat
+    ? `<div class="repeat-badge">🔁 Nochmal – diese gingen schief!</div>` : '';
+
+  // Pill
+  const pill = document.getElementById('q-pill');
+  pill.textContent = topic.name;
+  pill.style.cssText = `background:${topic.cLight};color:${topic.cText}`;
+
+  // Focus label
+  document.getElementById('focus-label').textContent = topic.focusLabel;
+
+  // Sentence
+  document.getElementById('q-sentence').innerHTML =
+    q.s.replace('___', `<span class="blank">?</span>`);
+
+  // Options – highlight focus letters
+  const opts = shuffle(q.opts.slice(0, 3));
+  const grid = document.getElementById('opts');
+  grid.innerHTML = '';
+  opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    // highlight the focus part
+    btn.innerHTML = hi(opt, q.focus || topic.focus);
+    btn.onclick = () => pick(btn, opt, q.w, q, opts);
+    grid.appendChild(btn);
+  });
+
+  document.getElementById('feedback-area').innerHTML = '';
+}
+
+const GOODS = ['Super! 🎉','Richtig! ⭐','Genau! 🌈','Klasse! 💪','Toll! 🏆','Wunderbar! 🌟'];
+const BADS  = ['Nicht ganz... 💭','Fast! Schau genau hin 🔍','Ups! 🤔','Noch nicht ganz 💡'];
+
+function pick(btn, chosen, correct, q, opts) {
+  if (document.querySelectorAll('.opt-btn')[0].disabled) return;
+  document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+
+  const ok = chosen === correct;
+  if (ok) {
+    btn.classList.add('correct'); score++;
+    document.getElementById('tb-score').textContent = score;
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.opt-btn').forEach(b => {
+      if (b.textContent.replace(/\s/g,'') === correct.replace(/\s/g,'')) b.classList.add('reveal');
+    });
+    if (!repeatQueue.find(r => r.w === q.w)) repeatQueue.push({ ...q });
+    if (!allWrongWords.includes(q.w)) allWrongWords.push(q.w);
+  }
+
+  // Show correct answer in sentence
+  const col = ok ? '#16a34a' : '#dc2626';
+  document.getElementById('q-sentence').innerHTML =
+    q.s.replace('___', `<span class="blank" style="color:${col};border-color:${col}">${correct}</span>`);
+
+  const isLast = qIdx + 1 >= queue.length;
+  const nextLabel = isLast
+    ? (repeatQueue.length > 0 ? '🔁 Falsche wiederholen!' : '🏁 Ergebnis')
+    : 'Weiter →';
+
+  document.getElementById('feedback-area').innerHTML =
+    `<div class="fb-msg ${ok?'good':'bad'}">${ok ? GOODS[~~(Math.random()*GOODS.length)] : BADS[~~(Math.random()*BADS.length)]}</div>
+     <button class="next-btn" onclick="advance()">${nextLabel}</button>`;
+}
+
+function advance() {
+  qIdx++;
+  if (qIdx >= queue.length) {
+    if (repeatQueue.length > 0) startRepeatRound();
+    else showResult();
+  } else renderQ();
+}
+
+// ══════════════════════════════════════════════════════════════
+// RESULT
+// ══════════════════════════════════════════════════════════════
+function showResult() {
+  showScreen('result-screen');
+  const correct = totalFirst - allWrongWords.length;
+  const pct = correct / totalFirst;
+  const [emoji,title,sub] = pct===1
+    ? ['🏆','Perfekt!','Alle Wörter richtig – du bist ein Rechtschreib-Profi!']
+    : pct>=.8 ? ['🌟','Super gemacht!','Fast alles richtig – weiter so!']
+    : pct>=.6 ? ['😊','Gut gemacht!','Übe die schwierigen Wörter nochmal!']
+    : pct>=.4 ? ['💪','Weiter üben!','Noch nicht ganz – du schaffst das!']
+    : ['📚','Nicht aufgeben!','Lies die Wörter nochmal und probier es erneut!'];
+
+  document.getElementById('r-emoji').textContent = emoji;
+  document.getElementById('r-title').textContent = title;
+  document.getElementById('r-score').textContent = `${correct}/${totalFirst}`;
+  document.getElementById('r-stars').textContent = pct===1?'⭐⭐⭐':pct>=.7?'⭐⭐':'⭐';
+  document.getElementById('r-sub').textContent = sub;
+
+  const ws = document.getElementById('wrong-summary');
+  const rw = document.getElementById('r-retry-wrong');
+  if (allWrongWords.length) {
+    ws.style.display = '';
+    document.getElementById('wrong-list').innerHTML = allWrongWords.map(w=>`<div class="wrong-chip">${w}</div>`).join('');
+    rw.style.display = '';
+  } else { ws.style.display='none'; rw.style.display='none'; }
+
+  if (pct >= .7) confetti();
+}
+
+function retryWrong() {
+  isRepeat = true;
+  queue = shuffle(allWrongWords.map(w => {
+    for (const t of TOPICS) { const f=t.words.find(x=>x.w===w); if(f) return {...f,topicId:t.id}; }
+    return null;
+  }).filter(Boolean));
+  repeatQueue=[]; allWrongWords=[]; score=0; qIdx=0; totalFirst=queue.length;
+  showScreen('game-screen'); renderQ();
+}
+function retryAll() { startGame(currentTopicId); }
+function goMenu()   { showScreen('menu-screen'); }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function confetti() {
+  const cols=['#667eea','#f472b6','#fbbf24','#34d399','#fb923c','#a78bfa'];
+  for(let i=0;i<65;i++){
+    const c=document.createElement('div'); c.className='cp';
+    c.style.cssText=`left:${Math.random()*100}vw;background:${cols[~~(Math.random()*cols.length)]};animation-delay:${Math.random()*2}s;animation-duration:${2+Math.random()*2}s;transform:rotateZ(${Math.random()*360}deg)`;
+    document.body.appendChild(c); setTimeout(()=>c.remove(),4500);
+  }
+}
+
+buildMenu();
+</script>
+</body>
+</html>
