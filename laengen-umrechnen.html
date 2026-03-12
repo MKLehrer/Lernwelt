@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Längen umrechnen</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0fdf4;
+  --text: #1a2e1a;
+  --muted: #6b8f6b;
+  --card: #ffffff;
+  --s1: #22c55e; --s1l: #dcfce7; --s1d: #15803d;
+  --s2: #f59e0b; --s2l: #fef3c7; --s2d: #b45309;
+  --s3: #ef4444; --s3l: #fee2e2; --s3d: #b91c1c;
+  --shadow: 0 6px 28px rgba(0,0,0,0.09);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+/* ── SCREENS ── */
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ══════════════════
+   MENU
+══════════════════ */
+#menu {
+  background: linear-gradient(160deg, #16a34a 0%, #15803d 50%, #0f4c20 100%);
+  padding: 0;
+}
+.menu-hero {
+  width: 100%; padding: 52px 24px 36px; text-align: center;
+}
+.menu-hero .ruler-icon { font-size: 3.5rem; display: block; margin-bottom: 12px; animation: wiggle 3s ease infinite; }
+@keyframes wiggle { 0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)} }
+.menu-hero h1 { font-family:'Baloo 2',cursive; font-size:clamp(2rem,6vw,3rem); color:white; text-shadow:0 3px 12px rgba(0,0,0,.25); }
+.menu-hero p { color:rgba(255,255,255,.85); font-size:1rem; font-weight:700; margin-top:8px; }
+
+.menu-body {
+  background: var(--bg); border-radius:36px 36px 0 0;
+  width:100%; flex:1; padding:36px 20px 60px;
+  display:flex; flex-direction:column; align-items:center; gap:20px;
+}
+.menu-body h2 { font-family:'Baloo 2',cursive; color:var(--muted); font-size:1rem; text-transform:uppercase; letter-spacing:2px; }
+
+/* conversion chips */
+.conv-chips { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.conv-chip {
+  background:white; border-radius:50px; padding:8px 18px;
+  font-weight:800; font-size:.9rem;
+  box-shadow:0 3px 10px rgba(0,0,0,.08);
+  border:2px solid #e0ece0;
+  color: var(--muted);
+}
+.conv-chip b { color: var(--text); }
+
+/* level cards */
+.level-cards { display:flex; flex-direction:column; gap:14px; width:100%; max-width:500px; }
+.level-card {
+  background:white; border-radius:24px;
+  padding:22px 22px 20px;
+  cursor:pointer;
+  border:2.5px solid transparent;
+  box-shadow:var(--shadow);
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, border-color .2s;
+  position:relative; overflow:hidden;
+}
+.level-card::before { content:''; position:absolute; top:0;left:0;right:0; height:5px; background:var(--lc,#22c55e); border-radius:22px 22px 0 0; }
+.level-card:hover { transform:translateY(-5px); border-color:var(--lc,#22c55e); box-shadow:0 12px 32px rgba(0,0,0,.13); }
+.level-card .lc-top { display:flex; align-items:center; gap:14px; margin-bottom:10px; }
+.level-card .lc-badge {
+  width:48px; height:48px; border-radius:50%; background:var(--lcl,#dcfce7);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.5rem; flex-shrink:0;
+}
+.level-card .lc-title { font-family:'Baloo 2',cursive; font-size:1.3rem; font-weight:800; color:var(--lc,#22c55e); }
+.level-card .lc-sub { font-size:.83rem; color:var(--muted); font-weight:700; }
+.level-card .lc-example {
+  background:var(--lcl,#dcfce7); border-radius:14px;
+  padding:10px 16px; font-size:.9rem; font-weight:700; color:var(--lcd,#15803d);
+  display:flex; align-items:center; gap:8px;
+}
+.level-card .lc-example span { opacity:.7; font-size:.8rem; }
+
+/* ══════════════════
+   GAME
+══════════════════ */
+#game { padding:0; justify-content:flex-start; }
+
+.topbar {
+  width:100%; background:white; padding:13px 18px;
+  display:flex; align-items:center; gap:12px;
+  box-shadow:0 2px 10px rgba(0,0,0,.07);
+  position:sticky; top:0; z-index:20;
+}
+.back-btn { background:#f0f7f0; border:none; border-radius:50px; padding:8px 16px; font-family:'Nunito',sans-serif; font-weight:800; font-size:.88rem; cursor:pointer; color:#555; transition:background .15s; }
+.back-btn:hover { background:#d1f0d1; }
+.tb-mid { flex:1; min-width:0; }
+.tb-title { font-family:'Baloo 2',cursive; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tb-sub { font-size:.74rem; color:var(--muted); font-weight:700; }
+.score-pill { border-radius:50px; padding:6px 14px; font-weight:800; font-size:.95rem; white-space:nowrap; color:white; background:var(--lc,#22c55e); }
+
+.prog-bar { width:100%; height:8px; background:#e5f5e5; }
+.prog-fill { height:100%; background:var(--lc,#22c55e); transition:width .4s ease; border-radius:0 4px 4px 0; }
+
+.game-body { width:100%; max-width:600px; padding:28px 20px 60px; display:flex; flex-direction:column; align-items:center; gap:22px; }
+
+/* question card */
+.q-card {
+  background:white; border-radius:28px; padding:30px 24px 26px;
+  width:100%; box-shadow:var(--shadow); text-align:center;
+  border-top:5px solid var(--lc,#22c55e);
+}
+.q-label { font-size:.75rem; font-weight:800; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:14px; }
+
+/* visual ruler bar */
+.ruler-wrap { width:100%; margin:0 0 20px; position:relative; }
+.ruler-bar {
+  height:32px; background:linear-gradient(90deg, var(--lc,#22c55e), var(--lcd,#15803d));
+  border-radius:8px; position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  color:white; font-weight:800; font-size:.85rem;
+  box-shadow:0 3px 10px rgba(0,0,0,.15);
+  transition:width .5s ease;
+  margin:0 auto;
+  max-width:95%;
+}
+.ruler-bar::after {
+  content:'';
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(90deg, rgba(255,255,255,.15) 0, rgba(255,255,255,.15) 1px, transparent 1px, transparent 10px);
+}
+
+.q-task {
+  font-family:'Baloo 2',cursive;
+  font-size:clamp(1.3rem,5vw,1.9rem);
+  font-weight:800;
+  line-height:1.4;
+  color:var(--text);
+}
+.q-task .given { color:var(--lc,#22c55e); }
+.q-task .arrow { color:var(--muted); font-size:1.2rem; }
+
+/* input area */
+.input-wrap {
+  display:flex; align-items:center; gap:10px;
+  justify-content:center; flex-wrap:wrap;
+  width:100%;
+}
+.answer-input {
+  font-family:'Baloo 2',cursive; font-size:1.6rem; font-weight:800;
+  text-align:center; width:140px;
+  border:3px solid #cce8cc; border-radius:16px; padding:12px 10px;
+  outline:none; background:white; color:var(--text);
+  transition:border-color .2s, box-shadow .2s;
+}
+.answer-input:focus { border-color:var(--lc,#22c55e); box-shadow:0 0 0 4px rgba(34,197,94,.15); }
+.answer-input.correct { border-color:#22c55e; background:#dcfce7; animation:popIn .35s ease; }
+.answer-input.wrong   { border-color:#ef4444; background:#fee2e2; animation:shakeIt .35s ease; }
+.unit-label { font-family:'Baloo 2',cursive; font-size:1.4rem; font-weight:800; color:var(--muted); }
+
+.check-btn {
+  background:var(--lc,#22c55e); color:white; border:none; border-radius:50px;
+  padding:14px 36px; font-family:'Baloo 2',cursive; font-size:1.2rem;
+  cursor:pointer; box-shadow:0 5px 0 var(--lcd,#15803d);
+  transition:transform .15s, box-shadow .15s; position:relative; top:0;
+  width:100%; max-width:280px;
+}
+.check-btn:hover { transform:translateY(-3px); box-shadow:0 8px 0 var(--lcd,#15803d); }
+.check-btn:active { top:4px; box-shadow:0 1px 0 var(--lcd,#15803d); }
+.check-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+/* feedback */
+.feedback { min-height:70px; display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; }
+.fb-msg { font-family:'Baloo 2',cursive; font-size:1.25rem; padding:10px 24px; border-radius:16px; animation:popIn .3s ease; text-align:center; }
+.fb-msg.good { background:#dcfce7; color:#166534; }
+.fb-msg.bad  { background:#fee2e2; color:#991b1b; }
+.fb-hint { font-size:.88rem; font-weight:700; color:#555; background:#f5f5f5; border-radius:12px; padding:8px 16px; animation:popIn .3s ease; }
+.next-btn {
+  background:var(--lc,#22c55e); color:white; border:none; border-radius:50px;
+  padding:13px 36px; font-family:'Baloo 2',cursive; font-size:1.15rem;
+  cursor:pointer; box-shadow:0 5px 0 var(--lcd,#15803d);
+  transition:transform .15s; animation:popIn .3s ease;
+}
+.next-btn:hover { transform:translateY(-3px); }
+
+@keyframes popIn { from{transform:scale(.5);opacity:0} 80%{transform:scale(1.05)} to{transform:scale(1);opacity:1} }
+@keyframes shakeIt { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+
+/* helpers cheat-sheet */
+.cheat-sheet {
+  background:white; border-radius:20px; padding:16px 20px;
+  width:100%; box-shadow:0 3px 12px rgba(0,0,0,.06);
+  display:flex; justify-content:center; gap:20px; flex-wrap:wrap;
+}
+.cheat-item { text-align:center; }
+.cheat-item .cl { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+.cheat-item .cv { font-family:'Baloo 2',cursive; font-size:1.05rem; font-weight:800; color:var(--text); }
+
+/* ══════════════════
+   RESULT
+══════════════════ */
+#result {
+  background:linear-gradient(160deg,#16a34a 0%,#15803d 50%,#0f4c20 100%);
+  justify-content:center; padding:40px 20px; gap:20px;
+}
+.result-card { background:white; border-radius:32px; padding:40px 32px; max-width:460px; width:100%; text-align:center; box-shadow:0 16px 40px rgba(0,0,0,.15); }
+.r-emoji { font-size:4.5rem; display:block; animation:bounce 1s ease infinite; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+.r-title { font-family:'Baloo 2',cursive; font-size:2.2rem; margin:10px 0 4px; }
+.r-score { font-family:'Baloo 2',cursive; font-size:3.8rem; font-weight:800; background:linear-gradient(135deg,#16a34a,#f59e0b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1; }
+.r-stars { font-size:2.2rem; letter-spacing:8px; margin:10px 0; }
+.r-sub { color:var(--muted); font-weight:700; font-size:.95rem; }
+.r-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+.btn-main { background:white; color:#16a34a; border:none; border-radius:50px; padding:14px 28px; font-family:'Baloo 2',cursive; font-size:1.1rem; cursor:pointer; box-shadow:0 5px 0 rgba(0,0,0,.12); transition:transform .15s; }
+.btn-main:hover { transform:translateY(-3px); }
+.btn-ghost { background:rgba(255,255,255,.2); color:white; border:2px solid rgba(255,255,255,.6); border-radius:50px; padding:14px 28px; font-family:'Baloo 2',cursive; font-size:1.1rem; cursor:pointer; transition:background .15s; }
+.btn-ghost:hover { background:rgba(255,255,255,.35); }
+
+/* confetti */
+.cp { position:fixed; width:10px; height:13px; border-radius:2px; animation:cf 3s ease-in forwards; z-index:9999; pointer-events:none; }
+@keyframes cf { 0%{transform:translateY(-10px) rotateZ(0);opacity:1} 100%{transform:translateY(110vh) rotateZ(720deg);opacity:0} }
+
+@media(max-width:480px) {
+  .answer-input { width:110px; font-size:1.3rem; }
+  .unit-label { font-size:1.1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ MENU ══ -->
+<div class="screen active" id="menu">
+  <div class="menu-hero">
+    <span class="ruler-icon">📏</span>
+    <h1>Längen umrechnen</h1>
+    <p>mm · cm · m – wähle deine Stufe!</p>
+  </div>
+  <div class="menu-body">
+    <h2>Was lernst du hier?</h2>
+    <div class="conv-chips">
+      <div class="conv-chip">10 mm = <b>1 cm</b></div>
+      <div class="conv-chip">100 cm = <b>1 m</b></div>
+      <div class="conv-chip">1000 mm = <b>1 m</b></div>
+    </div>
+    <h2 style="margin-top:8px">Schwierigkeitsstufe wählen</h2>
+    <div class="level-cards">
+
+      <div class="level-card" style="--lc:var(--s1);--lcl:var(--s1l);--lcd:var(--s1d)" onclick="startLevel(1)">
+        <div class="lc-top">
+          <div class="lc-badge">🐣</div>
+          <div>
+            <div class="lc-title">Stufe 1 – Leicht</div>
+            <div class="lc-sub">Ganze Zahlen, keine Kommas</div>
+          </div>
+        </div>
+        <div class="lc-example">
+          <span>Beispiel:</span>
+          90 mm = <b>9 cm</b> &nbsp;|&nbsp; 3 cm = <b>30 mm</b> &nbsp;|&nbsp; 2 m = <b>200 cm</b>
+        </div>
+      </div>
+
+      <div class="level-card" style="--lc:var(--s2);--lcl:var(--s2l);--lcd:var(--s2d)" onclick="startLevel(2)">
+        <div class="lc-top">
+          <div class="lc-badge">🦊</div>
+          <div>
+            <div class="lc-title">Stufe 2 – Mittel</div>
+            <div class="lc-sub">Mit einem Komma (halbe Zentimeter)</div>
+          </div>
+        </div>
+        <div class="lc-example">
+          <span>Beispiel:</span>
+          45 mm = <b>4,5 cm</b> &nbsp;|&nbsp; 2,5 cm = <b>25 mm</b> &nbsp;|&nbsp; 1,5 m = <b>150 cm</b>
+        </div>
+      </div>
+
+      <div class="level-card" style="--lc:var(--s3);--lcl:var(--s3l);--lcd:var(--s3d)" onclick="startLevel(3)">
+        <div class="lc-top">
+          <div class="lc-badge">🦅</div>
+          <div>
+            <div class="lc-title">Stufe 3 – Schwer</div>
+            <div class="lc-sub">Gemischte Einheiten, alle Umrechnungen</div>
+          </div>
+        </div>
+        <div class="lc-example">
+          <span>Beispiel:</span>
+          123 mm = <b>12,3 cm</b> &nbsp;|&nbsp; 2,35 m = <b>235 cm</b> &nbsp;|&nbsp; 3,7 cm = <b>37 mm</b>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div class="screen" id="game">
+  <div class="topbar">
+    <button class="back-btn" onclick="goMenu()">← Menü</button>
+    <div class="tb-mid">
+      <div class="tb-title" id="tb-title">Stufe 1</div>
+      <div class="tb-sub" id="tb-sub">Aufgabe 1 / 10</div>
+    </div>
+    <div class="score-pill" id="tb-score">⭐ 0</div>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+
+  <div class="game-body">
+    <!-- mini cheat-sheet -->
+    <div class="cheat-sheet" id="cheat-sheet">
+      <div class="cheat-item"><div class="cl">Merkhilfe</div><div class="cv">10 mm = 1 cm</div></div>
+      <div class="cheat-item"><div class="cl">Merkhilfe</div><div class="cv">100 cm = 1 m</div></div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-label" id="q-label">Rechne um!</div>
+      <div class="ruler-wrap" id="ruler-wrap">
+        <div class="ruler-bar" id="ruler-bar" style="width:60%">
+          <span id="ruler-text">60 mm</span>
+        </div>
+      </div>
+      <div class="q-task" id="q-task"></div>
+    </div>
+
+    <div class="input-wrap">
+      <input class="answer-input" id="answer-input" type="text" inputmode="decimal" placeholder="?" autocomplete="off" />
+      <div class="unit-label" id="unit-label">cm</div>
+    </div>
+
+    <button class="check-btn" id="check-btn" onclick="checkAnswer()">✔ Prüfen</button>
+
+    <div class="feedback" id="feedback"></div>
+  </div>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div class="screen" id="result">
+  <div class="result-card">
+    <span class="r-emoji" id="r-emoji">🏆</span>
+    <div class="r-title" id="r-title">Super!</div>
+    <div class="r-score" id="r-score">8/10</div>
+    <div class="r-stars" id="r-stars">⭐⭐⭐</div>
+    <div class="r-sub" id="r-sub"></div>
+  </div>
+  <div class="r-btns">
+    <button class="btn-main" onclick="retryLevel()">🔄 Nochmal</button>
+    <button class="btn-ghost" onclick="goMenu()">🏠 Menü</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// AUFGABEN-GENERATOR
+// ══════════════════════════════════════════════════════════
+
+const LEVEL_COLORS = {
+  1: { lc:'#22c55e', lcd:'#15803d', prog:'#22c55e' },
+  2: { lc:'#f59e0b', lcd:'#b45309', prog:'#f59e0b' },
+  3: { lc:'#ef4444', lcd:'#b91c1c', prog:'#ef4444' },
+};
+
+const LEVEL_NAMES = { 1:'🐣 Stufe 1 – Leicht', 2:'🦊 Stufe 2 – Mittel', 3:'🦅 Stufe 3 – Schwer' };
+
+// Formatiert eine Zahl deutsch: 4.5 → "4,5", 4 → "4"
+function fmt(n) {
+  let s = n.toFixed(2).replace('.', ',');
+  // remove trailing zeros after comma
+  s = s.replace(/,?0+$/, '');
+  return s;
+}
+
+// Parst deutsche Zahleneingabe: "4,5" → 4.5
+function parseDE(s) {
+  return parseFloat(s.trim().replace(',', '.'));
+}
+
+// Zufallszahl zwischen min und max (inklusiv, ganze Zahlen)
+function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+// Wählt einen aus einem Array
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// ── AUFGABEN-TYPEN ──────────────────────────────────────────
+
+// Stufe 1: Nur glatte Zahlen (vielfache von 10mm oder ganze cm/m)
+function genLevel1() {
+  const type = pick(['mm2cm_10','cm2mm_1','cm2m_100','m2cm_1']);
+  let question, unit, answer, rulerVal, rulerLabel;
+
+  if (type === 'mm2cm_10') {
+    // z.B. 30 mm → 3 cm   (vielfache von 10)
+    const cm = rnd(1, 15);
+    const mm = cm * 10;
+    question = `${mm} mm = ? cm`;
+    unit = 'cm'; answer = cm; rulerVal = mm; rulerLabel = `${mm} mm`;
+  } else if (type === 'cm2mm_1') {
+    // z.B. 5 cm → 50 mm
+    const cm = rnd(1, 15);
+    question = `${cm} cm = ? mm`;
+    unit = 'mm'; answer = cm * 10; rulerVal = cm * 10; rulerLabel = `${cm} cm`;
+  } else if (type === 'cm2m_100') {
+    // z.B. 300 cm → 3 m   (vielfache von 100)
+    const m = rnd(1, 8);
+    const cm = m * 100;
+    question = `${cm} cm = ? m`;
+    unit = 'm'; answer = m; rulerVal = m * 10; rulerLabel = `${cm} cm`;
+  } else {
+    // z.B. 4 m → 400 cm
+    const m = rnd(1, 8);
+    question = `${m} m = ? cm`;
+    unit = 'cm'; answer = m * 100; rulerVal = m * 10; rulerLabel = `${m} m`;
+  }
+  return { question, unit, answer, rulerVal: Math.min(rulerVal, 150), rulerLabel };
+}
+
+// Stufe 2: Halbe Werte (x,5) und 50er-Vielfache bei mm
+function genLevel2() {
+  const type = pick(['mm2cm_5','cm2mm_5','m2cm_half','cm2m_50']);
+
+  let question, unit, answer, rulerVal, rulerLabel;
+
+  if (type === 'mm2cm_5') {
+    // z.B. 45 mm → 4,5 cm  (vielfache von 5)
+    const fives = rnd(1, 29); // 5..145 in steps of 5
+    const mm = fives * 5;
+    const cm = mm / 10;
+    question = `${mm} mm = ? cm`;
+    unit = 'cm'; answer = cm; rulerVal = mm; rulerLabel = `${mm} mm`;
+  } else if (type === 'cm2mm_5') {
+    // z.B. 3,5 cm → 35 mm
+    const whole = rnd(1,14);
+    const half = pick([0, 0.5]);
+    const cm = whole + half;
+    question = `${fmt(cm)} cm = ? mm`;
+    unit = 'mm'; answer = cm * 10; rulerVal = cm * 10; rulerLabel = `${fmt(cm)} cm`;
+  } else if (type === 'm2cm_half') {
+    // z.B. 1,5 m → 150 cm
+    const whole = rnd(1,7);
+    const half = pick([0, 0.5]);
+    const m = whole + half;
+    question = `${fmt(m)} m = ? cm`;
+    unit = 'cm'; answer = m * 100; rulerVal = m * 12; rulerLabel = `${fmt(m)} m`;
+  } else {
+    // z.B. 250 cm → 2,5 m
+    const halves = rnd(1,19);
+    const cm = halves * 50;
+    const m = cm / 100;
+    question = `${cm} cm = ? m`;
+    unit = 'm'; answer = m; rulerVal = halves * 8; rulerLabel = `${cm} cm`;
+  }
+  return { question, unit, answer, rulerVal: Math.min(rulerVal, 150), rulerLabel };
+}
+
+// Stufe 3: Beliebige Zehntel (z.B. 123 mm = 12,3 cm; 2,35 m = 235 cm)
+function genLevel3() {
+  const type = pick(['mm2cm_any','cm2mm_any','m2cm_any','cm2m_any','mm2m','m2mm']);
+
+  let question, unit, answer, rulerVal, rulerLabel;
+
+  if (type === 'mm2cm_any') {
+    // z.B. 73 mm → 7,3 cm
+    const mm = rnd(11, 199);
+    question = `${mm} mm = ? cm`;
+    unit = 'cm'; answer = mm / 10; rulerVal = mm / 2; rulerLabel = `${mm} mm`;
+  } else if (type === 'cm2mm_any') {
+    // z.B. 8,3 cm → 83 mm
+    const tenths = rnd(11,199);
+    const cm = tenths / 10;
+    question = `${fmt(cm)} cm = ? mm`;
+    unit = 'mm'; answer = tenths; rulerVal = tenths / 2; rulerLabel = `${fmt(cm)} cm`;
+  } else if (type === 'm2cm_any') {
+    // z.B. 2,35 m → 235 cm
+    const cents = rnd(101, 999);
+    const m = cents / 100;
+    question = `${fmt(m)} m = ? cm`;
+    unit = 'cm'; answer = cents; rulerVal = cents / 10; rulerLabel = `${fmt(m)} m`;
+  } else if (type === 'cm2m_any') {
+    // z.B. 375 cm → 3,75 m
+    const cm = rnd(101, 999);
+    question = `${cm} cm = ? m`;
+    unit = 'm'; answer = cm / 100; rulerVal = cm / 10; rulerLabel = `${cm} cm`;
+  } else if (type === 'mm2m') {
+    // z.B. 1500 mm → 1,5 m
+    const tenths = rnd(5, 30);
+    const mm = tenths * 100;
+    question = `${mm} mm = ? m`;
+    unit = 'm'; answer = mm / 1000; rulerVal = tenths * 5; rulerLabel = `${mm} mm`;
+  } else {
+    // z.B. 2,3 m → 2300 mm
+    const tenths = rnd(5, 30);
+    const m = tenths / 10;
+    question = `${fmt(m)} m = ? mm`;
+    unit = 'mm'; answer = m * 1000; rulerVal = tenths * 5; rulerLabel = `${fmt(m)} m`;
+  }
+  return { question, unit, answer, rulerVal: Math.min(rulerVal, 150), rulerLabel };
+}
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let level = 1, questions = [], qIdx = 0, score = 0, currentQ = null, answered = false;
+
+const TOTAL = 12;
+const GOODS = ['Super! 🎉','Richtig! ⭐','Genau! 🌈','Klasse! 💪','Toll! 🏆','Wunderbar! 🌟','Top! 🎊'];
+const BADS  = ['Nicht ganz... 💭','Fast! 🔍','Ups! 🤔','Schau nochmal hin 💡'];
+
+// ══════════════════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════════════════
+function startLevel(lvl) {
+  level = lvl; score = 0; qIdx = 0;
+  // pre-generate questions
+  const gen = lvl===1 ? genLevel1 : lvl===2 ? genLevel2 : genLevel3;
+  questions = Array.from({length:TOTAL}, gen);
+  applyColors();
+  showScreen('game');
+  loadQuestion();
+}
+
+function applyColors() {
+  const c = LEVEL_COLORS[level];
+  document.documentElement.style.setProperty('--lc', c.lc);
+  document.documentElement.style.setProperty('--lcd', c.lcd);
+}
+
+function loadQuestion() {
+  answered = false;
+  currentQ = questions[qIdx];
+  const total = questions.length;
+
+  document.getElementById('tb-title').textContent = LEVEL_NAMES[level];
+  document.getElementById('tb-sub').textContent = `Aufgabe ${qIdx+1} / ${total}`;
+  document.getElementById('tb-score').textContent = `⭐ ${score}`;
+  document.getElementById('prog-fill').style.width = (qIdx/total*100)+'%';
+
+  // Ruler visual
+  const pct = Math.max(15, Math.min(95, currentQ.rulerVal));
+  document.getElementById('ruler-bar').style.width = pct + '%';
+  document.getElementById('ruler-text').textContent = currentQ.rulerLabel;
+
+  // Task text
+  const parts = currentQ.question.split('?');
+  document.getElementById('q-task').innerHTML =
+    `<span class="given">${parts[0].trim()}</span>
+     <span class="arrow"> = </span>
+     <span style="color:var(--lc)">? ${currentQ.unit}</span>`;
+
+  // Unit label
+  document.getElementById('unit-label').textContent = currentQ.unit;
+
+  // Input
+  const inp = document.getElementById('answer-input');
+  inp.value = '';
+  inp.className = 'answer-input';
+  inp.disabled = false;
+  inp.focus();
+
+  document.getElementById('check-btn').disabled = false;
+  document.getElementById('feedback').innerHTML = '';
+}
+
+// ══════════════════════════════════════════════════════════
+// CHECK
+// ══════════════════════════════════════════════════════════
+function checkAnswer() {
+  if (answered) return;
+  const inp = document.getElementById('answer-input');
+  const raw = inp.value.trim();
+  if (!raw) { inp.focus(); return; }
+
+  const given = parseDE(raw);
+  // Round both to avoid floating point issues (up to 3 decimal places)
+  const correct = Math.round(currentQ.answer * 1000) / 1000;
+  const isOk = Math.abs(given - correct) < 0.001;
+
+  answered = true;
+  inp.disabled = true;
+  document.getElementById('check-btn').disabled = true;
+
+  if (isOk) {
+    inp.classList.add('correct');
+    score++;
+    document.getElementById('tb-score').textContent = `⭐ ${score}`;
+    showFeedback(true);
+  } else {
+    inp.classList.add('wrong');
+    showFeedback(false);
+  }
+}
+
+function showFeedback(ok) {
+  const isLast = qIdx + 1 >= questions.length;
+  const nextLabel = isLast ? '🏁 Ergebnis' : 'Weiter →';
+  const msg = ok ? GOODS[~~(Math.random()*GOODS.length)] : BADS[~~(Math.random()*BADS.length)];
+  let html = `<div class="fb-msg ${ok?'good':'bad'}">${msg}</div>`;
+  if (!ok) {
+    html += `<div class="fb-hint">Richtige Antwort: <b>${fmt(currentQ.answer)} ${currentQ.unit}</b></div>`;
+  }
+  html += `<button class="next-btn" onclick="advance()">${nextLabel}</button>`;
+  document.getElementById('feedback').innerHTML = html;
+}
+
+function advance() {
+  qIdx++;
+  if (qIdx >= questions.length) showResult();
+  else loadQuestion();
+}
+
+// ══════════════════════════════════════════════════════════
+// RESULT
+// ══════════════════════════════════════════════════════════
+function showResult() {
+  showScreen('result');
+  const total = questions.length;
+  const pct = score / total;
+  const [emoji,title,sub] =
+    pct===1    ? ['🏆','Perfekt!','Alle richtig – du bist ein Mathe-Profi!']
+    : pct>=.8  ? ['🌟','Super gemacht!','Fast alles richtig – weiter so!']
+    : pct>=.6  ? ['😊','Gut gemacht!','Übe weiter – du schaffst das!']
+    : pct>=.4  ? ['💪','Weiter üben!','Schau dir die Merkhilfe nochmal an!']
+    :            ['📐','Nicht aufgeben!','10 mm = 1 cm, 100 cm = 1 m – du lernst das!'];
+
+  document.getElementById('r-emoji').textContent = emoji;
+  document.getElementById('r-title').textContent = title;
+  document.getElementById('r-score').textContent = `${score}/${total}`;
+  document.getElementById('r-stars').textContent = pct===1?'⭐⭐⭐':pct>=.7?'⭐⭐':'⭐';
+  document.getElementById('r-sub').textContent = sub;
+
+  if (pct >= .7) confetti();
+}
+
+function retryLevel() { startLevel(level); }
+function goMenu()     { showScreen('menu'); document.documentElement.style.removeProperty('--lc'); document.documentElement.style.removeProperty('--lcd'); }
+
+// Enter-Taste
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('game').classList.contains('active')) {
+    if (!answered) checkAnswer();
+    else {
+      const nb = document.querySelector('.next-btn');
+      if (nb) nb.click();
+    }
+  }
+});
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function confetti() {
+  const cols=['#22c55e','#f59e0b','#3b82f6','#f472b6','#a78bfa','#fb923c'];
+  for(let i=0;i<65;i++){
+    const c=document.createElement('div'); c.className='cp';
+    c.style.cssText=`left:${Math.random()*100}vw;background:${cols[~~(Math.random()*cols.length)]};animation-delay:${Math.random()*2}s;animation-duration:${2+Math.random()*2}s;transform:rotateZ(${Math.random()*360}deg)`;
+    document.body.appendChild(c); setTimeout(()=>c.remove(),4500);
+  }
+}
+</script>
+</body>
+</html>
