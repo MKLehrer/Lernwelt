@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎙️ Diktat-Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #293548;
+  --accent: #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #fb923c;
+  --green: #4ade80;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --border: rgba(255,255,255,0.08);
+  --radius: 18px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Animated star background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(56,189,248,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(129,140,248,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(251,146,60,0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.screen { display: none; position: relative; z-index: 1; }
+.screen.active { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── MENU ── */
+.menu-screen {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 32px;
+  text-align: center;
+}
+
+.logo-area h1 {
+  font-family: 'Baloo 2', cursive;
+  font-size: clamp(2.2rem, 6vw, 3.5rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, var(--accent3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+}
+
+.logo-area p {
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.mic-icon {
+  font-size: 5rem;
+  display: block;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 20px rgba(56,189,248,0.4));
+  animation: pulse-mic 3s ease-in-out infinite;
+}
+
+@keyframes pulse-mic {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* Category grid */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 700px;
+}
+
+.cat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.cat-card:hover {
+  border-color: var(--accent);
+  background: var(--surface2);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(56,189,248,0.15);
+}
+
+.cat-card .cat-icon { font-size: 2rem; display: block; margin-bottom: 6px; }
+.cat-card .cat-name { font-weight: 700; font-size: .9rem; color: var(--text); }
+.cat-card .cat-count { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+
+.start-all-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 48px;
+  font-family: 'Baloo 2', cursive;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(56,189,248,0.3);
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+}
+
+.start-all-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(56,189,248,0.4); }
+
+.info-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 24px;
+  max-width: 560px;
+  width: 100%;
+  font-size: .9rem;
+  color: var(--muted);
+  line-height: 1.7;
+  text-align: left;
+}
+
+.info-box strong { color: var(--text); }
+
+/* ── GAME SCREEN ── */
+.game-screen { padding: 0; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.back-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-family: 'Nunito', sans-serif;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.topbar-mid { flex: 1; }
+.topbar-title { font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 1rem; }
+.topbar-sub { font-size: .78rem; color: var(--muted); margin-top: 1px; }
+
+.progress-area {
+  padding: 12px 20px 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.prog-bar {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+.prog-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: .75rem;
+  color: var(--muted);
+  padding: 6px 0 10px;
+}
+
+.error-counter {
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* Game body */
+.game-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  gap: 28px;
+}
+
+/* Word display card */
+.word-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 36px;
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+}
+
+.word-card-pill {
+  display: inline-block;
+  background: rgba(56,189,248,0.12);
+  color: var(--accent);
+  border-radius: 99px;
+  padding: 4px 14px;
+  font-size: .78rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+  letter-spacing: 0.5px;
+}
+
+.word-hint {
+  font-size: 1rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.word-sentence {
+  font-size: 1.15rem;
+  color: var(--text);
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.blank-slot {
+  display: inline-block;
+  min-width: 80px;
+  border-bottom: 3px solid var(--accent);
+  padding: 0 4px;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* Listen button */
+.listen-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(129,140,248,0.15));
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  border-radius: 50px;
+  padding: 14px 30px;
+  font-family: 'Baloo 2', cursive;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.listen-btn:hover {
+  background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(129,140,248,0.25));
+  transform: scale(1.04);
+}
+
+.listen-btn.playing {
+  background: linear-gradient(135deg, rgba(56,189,248,0.3), rgba(129,140,248,0.3));
+  animation: pulse-btn 1s ease-in-out infinite;
+}
+
+@keyframes pulse-btn {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.listen-icon { font-size: 1.4rem; }
+
+/* Input area */
+.input-area {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.word-input {
+  width: 100%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  outline: none;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+
+.word-input:focus {
+  border-color: var(--accent);
+  background: var(--surface2);
+  box-shadow: 0 0 0 4px rgba(56,189,248,0.1);
+}
+
+.word-input.correct { border-color: var(--green); background: rgba(74,222,128,0.08); }
+.word-input.wrong { border-color: var(--red); background: rgba(248,113,113,0.08); }
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-check {
+  flex: 1;
+  background: var(--accent);
+  color: #0f172a;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-family: 'Baloo 2', cursive;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-check:hover { background: #7dd3fc; transform: translateY(-2px); }
+.btn-check:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-fertig {
+  background: rgba(251,146,60,0.15);
+  color: var(--accent3);
+  border: 2px solid var(--accent3);
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-family: 'Baloo 2', cursive;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-fertig:hover { background: rgba(251,146,60,0.25); transform: translateY(-2px); }
+
+/* Feedback */
+.feedback-box {
+  width: 100%;
+  max-width: 480px;
+  border-radius: 14px;
+  padding: 16px 20px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  display: none;
+  align-items: center;
+  gap: 12px;
+}
+
+.feedback-box.show { display: flex; }
+.feedback-box.good { background: rgba(74,222,128,0.12); border: 1.5px solid var(--green); color: var(--green); }
+.feedback-box.bad { background: rgba(248,113,113,0.12); border: 1.5px solid var(--red); color: var(--red); }
+.feedback-icon { font-size: 1.4rem; }
+.feedback-text { flex: 1; }
+.correct-word { font-size: 1.1rem; font-weight: 800; }
+.btn-next {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-family: 'Baloo 2', cursive;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-next:hover { background: var(--surface); border-color: var(--accent); }
+
+/* ── RESULT SCREEN ── */
+.result-screen {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 28px;
+  text-align: center;
+}
+
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 36px 40px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.result-emoji { font-size: 4rem; display: block; margin-bottom: 8px; }
+.result-title {
+  font-family: 'Baloo 2', cursive;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.result-score {
+  font-family: 'Baloo 2', cursive;
+  font-size: 3.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.result-stars { font-size: 2rem; letter-spacing: 6px; margin: 10px 0 6px; }
+.result-sub { color: var(--muted); font-size: .9rem; font-weight: 600; }
+
+/* STOP screen - 15 errors */
+.stop-card {
+  background: rgba(248,113,113,0.1);
+  border: 2px solid var(--red);
+  border-radius: 24px;
+  padding: 36px 40px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.stop-title {
+  font-family: 'Baloo 2', cursive;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--red);
+  margin-bottom: 10px;
+}
+
+.stop-msg {
+  color: var(--muted);
+  font-size: .95rem;
+  line-height: 1.7;
+  font-weight: 600;
+}
+
+/* Wrong words list */
+.wrong-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px;
+  max-width: 600px;
+  width: 100%;
+}
+
+.wrong-section h3 {
+  font-family: 'Baloo 2', cursive;
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wrong-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.wrong-item {
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wrong-item .their-answer {
+  font-size: .78rem;
+  color: var(--red);
+  text-decoration: line-through;
+  font-weight: 600;
+}
+
+.wrong-item .correct-answer {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--green);
+}
+
+.wrong-item .article-hint {
+  font-size: .75rem;
+  color: var(--muted);
+}
+
+.result-btns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 14px 32px;
+  font-family: 'Baloo 2', cursive;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(56,189,248,0.25);
+}
+
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(56,189,248,0.35); }
+
+.btn-secondary {
+  background: none;
+  border: 2px solid var(--border);
+  color: var(--muted);
+  border-radius: 50px;
+  padding: 14px 28px;
+  font-family: 'Baloo 2', cursive;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Copy hint */
+.copy-hint {
+  background: rgba(251,191,36,0.1);
+  border: 1.5px solid var(--yellow);
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-size: .88rem;
+  color: var(--yellow);
+  font-weight: 700;
+  max-width: 560px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Confetti */
+.cp { position: fixed; width: 10px; height: 14px; border-radius: 2px; animation: cf 3.5s ease-in forwards; z-index: 9999; pointer-events: none; }
+@keyframes cf { 0%{transform:translateY(-10px) rotateZ(0deg) rotateX(0deg);opacity:1} 100%{transform:translateY(110vh) rotateZ(720deg) rotateX(360deg);opacity:0} }
+
+/* Stats pills in topbar */
+.stats-pills { display: flex; gap: 8px; align-items: center; }
+.stat-pill {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.stat-pill.green { color: var(--green); border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.08); }
+.stat-pill.red { color: var(--red); border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); }
+
+@media(max-width: 480px) {
+  .cat-grid { grid-template-columns: repeat(2, 1fr); }
+  .word-input { font-size: 1.2rem; }
+  .result-score { font-size: 2.8rem; }
+}
+
+/* Print styles for copying to notebook */
+@media print {
+  body { background: white; color: black; }
+  .result-btns, .topbar, button { display: none !important; }
+  .wrong-item { border: 1px solid #ccc; }
+  .wrong-item .correct-answer { color: #000; font-size: 1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── MENU SCREEN ── -->
+<div class="screen active" id="menu-screen">
+  <div class="menu-screen">
+    <div class="logo-area">
+      <span class="mic-icon">🎙️</span>
+      <h1>Diktat-Trainer</h1>
+      <p>Hör zu – schreibe auf – lerne!</p>
+    </div>
+
+    <div class="cat-grid" id="cat-grid"></div>
+
+    <button class="start-all-btn" onclick="startGame('all')">🚀 Alle Wörter üben</button>
+
+    <div class="info-box">
+      📋 <strong>So funktioniert es:</strong><br>
+      Klicke auf 🔊 um das Wort zu hören. Dann schreib es in das Feld. Du kannst das Wort so oft anhören wie du möchtest!
+      Wenn du fertig bist, drücke auf <strong>„Fertig"</strong>.
+      Bei <strong>15 Fehlern</strong> bricht das Diktat ab – dann erst üben!
+    </div>
+  </div>
+</div>
+
+<!-- ── GAME SCREEN ── -->
+<div class="screen" id="game-screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="confirmBack()">← Menü</button>
+    <div class="topbar-mid">
+      <div class="topbar-title" id="tb-title">Thema</div>
+      <div class="topbar-sub" id="tb-sub">Wort 1 / 20</div>
+    </div>
+    <div class="stats-pills">
+      <span class="stat-pill green">✓ <span id="tb-correct">0</span></span>
+      <span class="stat-pill red">✗ <span id="tb-errors">0</span>/15</span>
+    </div>
+  </div>
+
+  <div class="progress-area">
+    <div class="prog-bar">
+      <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+    <div class="prog-labels">
+      <span id="prog-left">0 bearbeitet</span>
+      <span id="prog-right">noch 0 übrig</span>
+    </div>
+  </div>
+
+  <div class="game-body">
+    <div class="word-card">
+      <div class="word-card-pill" id="q-category">Kategorie</div>
+      <div class="word-hint" id="q-hint">Hör dir das Wort an und schreib es auf!</div>
+      <div class="word-sentence" id="q-sentence"></div>
+    </div>
+
+    <button class="listen-btn" id="listen-btn" onclick="speakWord()">
+      <span class="listen-icon">🔊</span>
+      <span id="listen-label">Wort vorlesen</span>
+    </button>
+
+    <div class="input-area">
+      <input
+        type="text"
+        class="word-input"
+        id="word-input"
+        placeholder="Wort eintippen..."
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        onkeydown="handleKey(event)"
+      />
+      <div class="btn-row">
+        <button class="btn-check" id="btn-check" onclick="checkAnswer()">✓ Prüfen</button>
+        <button class="btn-fertig" onclick="confirmFinish()">⏱ Fertig</button>
+      </div>
+    </div>
+
+    <div class="feedback-box" id="feedback-box">
+      <span class="feedback-icon" id="fb-icon"></span>
+      <div class="feedback-text">
+        <div id="fb-msg"></div>
+        <div class="correct-word" id="fb-correct"></div>
+      </div>
+      <button class="btn-next" id="btn-next" onclick="nextWord()">Weiter →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── RESULT SCREEN ── -->
+<div class="screen" id="result-screen">
+  <div class="result-screen">
+    <div id="result-card-area"></div>
+
+    <div class="copy-hint">
+      📝 Schreib die falschen Wörter in dein Heft und übe sie nochmal!
+    </div>
+
+    <div id="wrong-section-area"></div>
+
+    <div class="result-btns">
+      <button class="btn-primary" id="r-retry-btn">🔁 Nochmal</button>
+      <button class="btn-secondary" onclick="goMenu()">🏠 Menü</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// WÖRTER-DATEN – aus Matobe-PDF (300 Wörter)
+// format: { w: "Wort", article: "das", s: "Satz mit ___" }
+// s kann auch null sein (kein Satzmuster)
+// ══════════════════════════════════════════════════════════════
+const CATEGORIES = [
+
+  {
+    id:"alltag", name:"Alltag & Zuhause", icon:"🏠",
+    words:[
+      { w:"Fenster",    article:"das",  s:"Ich öffne das ___ ." },
+      { w:"Tür",        article:"die",  s:"Bitte schließ die ___ ." },
+      { w:"Boden",      article:"der",  s:"Der ___ ist frisch gewischt." },
+      { w:"Tisch",      article:"der",  s:"Wir essen am ___ ." },
+      { w:"Stuhl",      article:"der",  s:"Setz dich auf den ___ ." },
+      { w:"Küche",      article:"die",  s:"Mama kocht in der ___ ." },
+      { w:"Zimmer",     article:"das",  s:"Mein ___ ist aufgeräumt." },
+      { w:"Treppe",     article:"die",  s:"Ich gehe die ___ hoch." },
+      { w:"Keller",     article:"der",  s:"Im ___ ist es dunkel." },
+      { w:"Garten",     article:"der",  s:"Wir spielen im ___ ." },
+      { w:"Schlüssel",  article:"der",  s:"Ich suche meinen ___ ." },
+      { w:"Wecker",     article:"der",  s:"Der ___ klingelt um 7 Uhr." },
+      { w:"Schrank",    article:"der",  s:"Die Kleider hängen im ___ ." },
+      { w:"Koffer",     article:"der",  s:"Wir packen den ___ für den Urlaub." },
+      { w:"Pflaster",   article:"das",  s:"Das ___ klebt auf der Wunde." },
+      { w:"Teller",     article:"der",  s:"Der ___ ist sauber gespült." },
+      { w:"Löffel",     article:"der",  s:"Ich esse Suppe mit dem ___ ." },
+      { w:"Gabel",      article:"die",  s:"Die ___ liegt neben dem Teller." },
+      { w:"Spiegel",    article:"der",  s:"Ich schaue in den ___ ." },
+    ]
+  },
+
+  {
+    id:"familie", name:"Familie & Menschen", icon:"👨‍👩‍👧‍👦",
+    words:[
+      { w:"Mutter",     article:"die",  s:"Meine ___ macht Frühstück." },
+      { w:"Vater",      article:"der",  s:"Mein ___ liest die Zeitung." },
+      { w:"Bruder",     article:"der",  s:"Mein ___ ist zwei Jahre älter." },
+      { w:"Schwester",  article:"die",  s:"Meine ___ spielt Klavier." },
+      { w:"Oma",        article:"die",  s:"Meine ___ backt Kuchen." },
+      { w:"Opa",        article:"der",  s:"Mein ___ geht spazieren." },
+      { w:"Tante",      article:"die",  s:"Meine ___ kommt zu Besuch." },
+      { w:"Freund",     article:"der",  s:"Mein bester ___ heißt Tim." },
+      { w:"Mädchen",    article:"das",  s:"Das ___ lacht fröhlich." },
+      { w:"Lehrer",     article:"der",  s:"Der ___ erklärt die Aufgabe." },
+      { w:"Familie",    article:"die",  s:"Meine ___ fährt in den Urlaub." },
+      { w:"Eltern",     article:"die",  s:"Meine ___ sind nett." },
+      { w:"Kind",       article:"das",  s:"Das ___ spielt im Garten." },
+      { w:"Mensch",     article:"der",  s:"Jeder ___ ist anders." },
+      { w:"Partner",    article:"der",  s:"Arbeite mit deinem ___ zusammen." },
+    ]
+  },
+
+  {
+    id:"natur", name:"Natur & Tiere", icon:"🌿",
+    words:[
+      { w:"Baum",       article:"der",  s:"Der ___ ist sehr groß." },
+      { w:"Blume",      article:"die",  s:"Die ___ riecht schön." },
+      { w:"Gras",       article:"das",  s:"Das ___ ist grün." },
+      { w:"Wald",       article:"der",  s:"Im ___ wohnen viele Tiere." },
+      { w:"Berg",       article:"der",  s:"Wir wandern auf den ___ ." },
+      { w:"Fluss",      article:"der",  s:"Der ___ fließt ins Meer." },
+      { w:"See",        article:"der",  s:"Im ___ schwimmen Fische." },
+      { w:"Meer",       article:"das",  s:"Das ___ ist blau und tief." },
+      { w:"Wolke",      article:"die",  s:"Die ___ zieht am Himmel." },
+      { w:"Regen",      article:"der",  s:"Der ___ trommelt aufs Dach." },
+      { w:"Schnee",     article:"der",  s:"Der ___ liegt weiß auf dem Boden." },
+      { w:"Frühling",   article:"der",  s:"Im ___ blühen die Blumen." },
+      { w:"Sommer",     article:"der",  s:"Im ___ ist es warm." },
+      { w:"Schlange",   article:"die",  s:"Die ___ kriecht durch das Gras." },
+      { w:"Ameise",     article:"die",  s:"Die kleine ___ trägt ein Korn." },
+      { w:"Biene",      article:"die",  s:"Die ___ sammelt Honig." },
+      { w:"Spinne",     article:"die",  s:"Die ___ spinnt ein Netz." },
+      { w:"Vogel",      article:"der",  s:"Der ___ singt im Baum." },
+      { w:"Raupe",      article:"die",  s:"Die ___ frisst Blätter." },
+      { w:"Igel",       article:"der",  s:"Der ___ hat viele Stacheln." },
+      { w:"Hase",       article:"der",  s:"Der ___ hoppelt durch die Wiese." },
+      { w:"Wolf",       article:"der",  s:"Der ___ heult in der Nacht." },
+      { w:"Tiger",      article:"der",  s:"Der ___ ist ein gefährliches Tier." },
+      { w:"Krokodil",   article:"das",  s:"Das ___ liegt in der Sonne." },
+      { w:"Delfin",     article:"der",  s:"Der ___ springt aus dem Wasser." },
+    ]
+  },
+
+  {
+    id:"schule", name:"Schule & Lernen", icon:"🎒",
+    words:[
+      { w:"Schule",     article:"die",  s:"Ich gehe jeden Tag in die ___ ." },
+      { w:"Heft",       article:"das",  s:"Ich schreibe in mein ___ ." },
+      { w:"Stift",      article:"der",  s:"Der ___ schreibt blau." },
+      { w:"Füller",     article:"der",  s:"Mein ___ ist leer." },
+      { w:"Lineal",     article:"das",  s:"Ich messe mit dem ___ ." },
+      { w:"Aufgabe",    article:"die",  s:"Die ___ ist schwierig." },
+      { w:"Fehler",     article:"der",  s:"Ich mache einen ___ ." },
+      { w:"Diktat",     article:"das",  s:"Beim ___ muss ich genau zuhören." },
+      { w:"Rechnen",    article:"das",  s:"Beim ___ brauche ich Konzentration." },
+      { w:"Geschichte", article:"die",  s:"Ich lese gerne eine ___ ." },
+      { w:"Beispiel",   article:"das",  s:"Das ist ein gutes ___ ." },
+      { w:"Rucksack",   article:"der",  s:"Mein ___ ist sehr schwer." },
+      { w:"Schere",     article:"die",  s:"Ich schneide mit der ___ ." },
+      { w:"Zeitung",    article:"die",  s:"Ich lese die ___ ." },
+      { w:"Sportzeug",  article:"das",  s:"Ich packe das ___ in meine Tasche." },
+    ]
+  },
+
+  {
+    id:"essen", name:"Essen & Trinken", icon:"🍎",
+    words:[
+      { w:"Brot",       article:"das",  s:"Ich esse ___ zum Frühstück." },
+      { w:"Butter",     article:"die",  s:"Ich streiche ___ auf das Brot." },
+      { w:"Käse",       article:"der",  s:"Der ___ schmeckt gut." },
+      { w:"Wurst",      article:"die",  s:"Die ___ ist lecker." },
+      { w:"Suppe",      article:"die",  s:"Die ___ ist heiß." },
+      { w:"Kuchen",     article:"der",  s:"Der ___ schmeckt süß." },
+      { w:"Salat",      article:"der",  s:"Ich esse frischen ___ ." },
+      { w:"Tomate",     article:"die",  s:"Die ___ ist rot und saftig." },
+      { w:"Gemüse",     article:"das",  s:"Ich esse jeden Tag ___ ." },
+      { w:"Apfel",      article:"der",  s:"Der ___ ist knackig." },
+      { w:"Nuss",       article:"die",  s:"Das Eichhörnchen knabbert an der ___ ." },
+      { w:"Tasse",      article:"die",  s:"Ich trinke Tee aus der ___ ." },
+      { w:"Flasche",    article:"die",  s:"Die ___ ist leer." },
+      { w:"Zucker",     article:"der",  s:"Der ___ ist süß." },
+      { w:"Pfeffer",    article:"der",  s:"Der ___ macht das Essen scharf." },
+      { w:"Schüssel",   article:"die",  s:"Die ___ steht auf dem Tisch." },
+      { w:"Pfirsich",   article:"der",  s:"Der ___ ist saftig und süß." },
+      { w:"Zwiebel",    article:"die",  s:"Die ___ macht uns weinen." },
+    ]
+  },
+
+  {
+    id:"koerper", name:"Körper & Gesundheit", icon:"💪",
+    words:[
+      { w:"Kopf",       article:"der",  s:"Mein ___ tut weh." },
+      { w:"Hand",       article:"die",  s:"Ich gebe dir meine ___ ." },
+      { w:"Finger",     article:"der",  s:"Ich habe fünf ___ an jeder Hand." },
+      { w:"Arm",        article:"der",  s:"Ich hebe den ___ hoch." },
+      { w:"Bein",       article:"das",  s:"Das ___ tut mir weh." },
+      { w:"Auge",       article:"das",  s:"Mein ___ ist müde." },
+      { w:"Nase",       article:"die",  s:"Meine ___ ist kalt." },
+      { w:"Zahn",       article:"der",  s:"Ich putze jeden Tag meinen ___ ." },
+      { w:"Ohr",        article:"das",  s:"Das ___ tut weh." },
+      { w:"Körper",     article:"der",  s:"Ich bewege meinen ___ beim Sport." },
+      { w:"Wunde",      article:"die",  s:"Die ___ wurde verbunden." },
+      { w:"Gesicht",    article:"das",  s:"Ich wasche mein ___ ." },
+    ]
+  },
+
+  {
+    id:"bewegung", name:"Bewegung & Sport", icon:"⚽",
+    words:[
+      { w:"laufen",     article:null,   s:"Ich ___ so schnell ich kann." },
+      { w:"springen",   article:null,   s:"Wir ___ über den Bach." },
+      { w:"schwimmen",  article:null,   s:"Im Sommer ___ wir im See." },
+      { w:"turnen",     article:null,   s:"Wir ___ in der Turnhalle." },
+      { w:"klettern",   article:null,   s:"Die Kinder ___ auf den Baum." },
+      { w:"werfen",     article:null,   s:"Ich ___ den Ball weit." },
+      { w:"fangen",     article:null,   s:"Kannst du den Ball ___?" },
+      { w:"Sport",      article:"der",  s:"___ hält uns gesund." },
+      { w:"Sprung",     article:"der",  s:"Der ___ über die Pfütze gelingt." },
+    ]
+  },
+
+  {
+    id:"fahrzeuge", name:"Fahrzeuge & Wege", icon:"🚂",
+    words:[
+      { w:"Auto",       article:"das",  s:"Das ___ fährt schnell." },
+      { w:"Zug",        article:"der",  s:"Der ___ kommt um 9 Uhr." },
+      { w:"Bahn",       article:"die",  s:"Die ___ fährt in die Stadt." },
+      { w:"Fahrrad",    article:"das",  s:"Ich fahre mit dem ___ zur Schule." },
+      { w:"Straße",     article:"die",  s:"Die ___ ist glatt." },
+      { w:"Vorfahrt",   article:"die",  s:"Achte auf die ___ !" },
+      { w:"Weg",        article:"der",  s:"Dieser ___ führt in den Wald." },
+      { w:"Reise",      article:"die",  s:"Die ___ dauert drei Stunden." },
+      { w:"Urlaub",     article:"der",  s:"Im ___ fahren wir ans Meer." },
+    ]
+  },
+
+  {
+    id:"zeit", name:"Zeit & Wetter", icon:"🕐",
+    words:[
+      { w:"Uhr",        article:"die",  s:"Die ___ zeigt acht Uhr." },
+      { w:"Stunde",     article:"die",  s:"Eine ___ hat 60 Minuten." },
+      { w:"Woche",      article:"die",  s:"Eine ___ hat sieben Tage." },
+      { w:"Jahr",       article:"das",  s:"Ein ___ hat 365 Tage." },
+      { w:"gestern",    article:null,   s:"___ war ich krank." },
+      { w:"morgen",     article:null,   s:"___ gehen wir ins Kino." },
+      { w:"heute",      article:null,   s:"___ scheint die Sonne." },
+      { w:"Winter",     article:"der",  s:"Im ___ liegt Schnee." },
+      { w:"Abend",      article:"der",  s:"Am ___ lesen wir zusammen." },
+      { w:"Wetter",     article:"das",  s:"Das ___ ist heute schön." },
+    ]
+  },
+
+  {
+    id:"adjektive", name:"Eigenschaften", icon:"🌈",
+    words:[
+      { w:"groß",       article:null,   s:"Der Elefant ist sehr ___ ." },
+      { w:"klein",      article:null,   s:"Die Maus ist sehr ___ ." },
+      { w:"schnell",    article:null,   s:"Das Auto fährt ___ ." },
+      { w:"langsam",    article:null,   s:"Die Schildkröte ist ___ ." },
+      { w:"stark",      article:null,   s:"Der Löwe ist sehr ___ ." },
+      { w:"schwach",    article:null,   s:"Das Kind ist noch ___ ." },
+      { w:"laut",       article:null,   s:"Die Musik ist ___ ." },
+      { w:"leise",      article:null,   s:"Das Baby schläft, sei ___ !" },
+      { w:"schwer",     article:null,   s:"Der Koffer ist ___ ." },
+      { w:"leicht",     article:null,   s:"Die Feder ist ___ ." },
+      { w:"kalt",       article:null,   s:"Im Winter ist es ___ ." },
+      { w:"warm",       article:null,   s:"Im Sommer ist es ___ ." },
+      { w:"gesund",     article:null,   s:"Obst ist ___ ." },
+      { w:"krank",      article:null,   s:"Das Kind ist ___ und bleibt im Bett." },
+      { w:"fremd",      article:null,   s:"Der Mann ist mir ___ ." },
+      { w:"fröhlich",   article:null,   s:"Das Kind ist ___ ." },
+      { w:"traurig",    article:null,   s:"Er ist ___ , weil er verloren hat." },
+      { w:"schlimm",    article:null,   s:"Der Sturm ist sehr ___ ." },
+      { w:"plötzlich",  article:null,   s:"___ fing es an zu regnen." },
+      { w:"endlich",    article:null,   s:"___ sind die Ferien da!" },
+    ]
+  },
+
+  {
+    id:"verben", name:"Verben & Tätigkeiten", icon:"✋",
+    words:[
+      { w:"suchen",     article:null,   s:"Ich ___ meine Brille." },
+      { w:"finden",     article:null,   s:"Kannst du das Buch ___?" },
+      { w:"geben",      article:null,   s:"Ich ___ dir das Heft." },
+      { w:"nehmen",     article:null,   s:"___ dir ein Stück Kuchen." },
+      { w:"bringen",    article:null,   s:"Kannst du mir das Buch ___?" },
+      { w:"helfen",     article:null,   s:"Ich ___ meiner Mutter." },
+      { w:"lernen",     article:null,   s:"Wir ___ jeden Tag Neues." },
+      { w:"arbeiten",   article:null,   s:"Papa muss ___ gehen." },
+      { w:"antworten",  article:null,   s:"Ich ___ auf die Frage." },
+      { w:"warten",     article:null,   s:"Ich ___ auf den Bus." },
+      { w:"kaufen",     article:null,   s:"Wir ___ Brot beim Bäcker." },
+      { w:"kochen",     article:null,   s:"Mama ___ Suppe." },
+      { w:"schlafen",   article:null,   s:"Das Baby ___ tief." },
+      { w:"träumen",    article:null,   s:"Ich ___ von einem Abenteuer." },
+      { w:"öffnen",     article:null,   s:"Ich ___ das Fenster." },
+      { w:"schließen",  article:null,   s:"Bitte ___ die Tür." },
+      { w:"stören",     article:null,   s:"Bitte nicht ___!" },
+      { w:"schützen",   article:null,   s:"Wir ___ die Tiere." },
+      { w:"riechen",    article:null,   s:"Die Blume ___ schön." },
+      { w:"leuchten",   article:null,   s:"Die Sterne ___ hell." },
+    ]
+  },
+
+  {
+    id:"schwierig", name:"Knifflige Wörter", icon:"🧩",
+    words:[
+      { w:"Häuser",     article:"die",  s:"Die ___ in unserer Straße sind alt." },
+      { w:"Bäume",      article:"die",  s:"Im Herbst verlieren die ___ ihre Blätter." },
+      { w:"Mäuse",      article:"die",  s:"Die kleinen ___ schleichen durch den Keller." },
+      { w:"Länder",     article:"die",  s:"Wir lernen viele ___ kennen." },
+      { w:"Wälder",     article:"die",  s:"Die ___ sind im Herbst bunt." },
+      { w:"Märchen",    article:"das",  s:"Ich höre gerne ein ___ ." },
+      { w:"Käfig",      article:"der",  s:"Der Vogel sitzt im ___ ." },
+      { w:"Bäcker",     article:"der",  s:"Beim ___ kaufen wir frisches Brot." },
+      { w:"Räder",      article:"die",  s:"Die ___ des Fahrrads sind rund." },
+      { w:"Füße",       article:"die",  s:"Meine ___ sind kalt." },
+      { w:"Züge",       article:"die",  s:"Die ___ fahren pünktlich ab." },
+      { w:"Köpfe",      article:"die",  s:"Alle ___ drehen sich um." },
+      { w:"Vögel",      article:"die",  s:"Die ___ zwitschern im Baum." },
+      { w:"Stühle",     article:"die",  s:"Die ___ stehen um den Tisch." },
+      { w:"Türen",      article:"die",  s:"Alle ___ sind geschlossen." },
+      { w:"Brücke",     article:"die",  s:"Wir gehen über die ___ ." },
+      { w:"Pflanze",    article:"die",  s:"Die ___ braucht Wasser." },
+      { w:"Pfütze",     article:"die",  s:"Das Kind springt in die ___ ." },
+      { w:"Pfanne",     article:"die",  s:"Das Ei brutzelt in der ___ ." },
+      { w:"Pferd",      article:"das",  s:"Das ___ galoppiert über die Weide." },
+    ]
+  },
+
+  {
+    id:"haeufig", name:"Häufige Wörter", icon:"📌",
+    words:[
+      { w:"weil",       article:null,   s:"Ich bleibe drin, ___ es regnet." },
+      { w:"wenn",       article:null,   s:"___ ich groß bin, werde ich Arzt." },
+      { w:"oder",       article:null,   s:"Möchtest du Tee ___ Saft?" },
+      { w:"doch",       article:null,   s:"Komm ___ mit!" },
+      { w:"immer",      article:null,   s:"Du hast ___ Hunger!" },
+      { w:"wieder",     article:null,   s:"Ich bin ___ gesund." },
+      { w:"schon",      article:null,   s:"Bist du ___ fertig?" },
+      { w:"nicht",      article:null,   s:"Das stimmt ___ ." },
+      { w:"nichts",     article:null,   s:"Es ist ___ zu sehen." },
+      { w:"durch",      article:null,   s:"Wir gehen ___ den Wald." },
+      { w:"neben",      article:null,   s:"Das Buch liegt ___ dem Heft." },
+      { w:"zusammen",   article:null,   s:"Wir spielen ___ ." },
+      { w:"außen",      article:null,   s:"Es ist ___ kalt." },
+      { w:"draußen",    article:null,   s:"Die Kinder spielen ___ ." },
+      { w:"warum",      article:null,   s:"___ bist du so traurig?" },
+      { w:"vielleicht", article:null,   s:"___ kommt er morgen." },
+      { w:"ziemlich",   article:null,   s:"Das war ___ schwierig." },
+      { w:"sofort",     article:null,   s:"Komm ___ her!" },
+      { w:"bereits",    article:null,   s:"Das haben wir ___ gelernt." },
+      { w:"eigentlich", article:null,   s:"Das ist ___ ganz einfach." },
+    ]
+  },
+
+  {
+    id:"sonderzeichen", name:"ß, ss & Dehnungs-h", icon:"✍️",
+    words:[
+      { w:"Straße",     article:"die",  s:"Die ___ ist glatt vom Eis." },
+      { w:"fleißig",    article:null,   s:"Das Kind ist sehr ___ ." },
+      { w:"weiß",       article:null,   s:"Der Schnee ist ___ ." },
+      { w:"heiß",       article:null,   s:"Der Tee ist ___ ." },
+      { w:"süß",        article:null,   s:"Der Kuchen ist ___ ." },
+      { w:"Gruß",       article:"der",  s:"Viele Grüße sendet ___ ..." },
+      { w:"Spaß",       article:"der",  s:"Das macht mir ___ !" },
+      { w:"Klasse",     article:"die",  s:"Unsere ___ macht einen Ausflug." },
+      { w:"wissen",     article:null,   s:"Ich ___ die Antwort." },
+      { w:"müssen",     article:null,   s:"Wir ___ jetzt gehen." },
+      { w:"essen",      article:null,   s:"Wir ___ Mittagessen." },
+      { w:"lassen",     article:null,   s:"Ich ___ das Buch liegen." },
+      { w:"Wasser",     article:"das",  s:"Ich trinke viel ___ ." },
+      { w:"vergessen",  article:null,   s:"Ich habe mein Heft ___ ." },
+      { w:"fahren",     article:null,   s:"Wir ___ mit dem Zug." },
+      { w:"zahlen",     article:null,   s:"Ich ___ an der Kasse." },
+      { w:"zählen",     article:null,   s:"Wir ___ bis zehn." },
+      { w:"wählen",     article:null,   s:"Ich ___ meine Lieblingsspeise." },
+      { w:"erzählen",   article:null,   s:"Ich ___ eine Geschichte." },
+      { w:"Rahmen",     article:"der",  s:"Das Bild hängt im ___ ." },
+    ]
+  },
+
+];
+
+// ══════════════════════════════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════════════════════════════
+let queue = [], qIdx = 0, score = 0, errors = 0;
+let wrongWords = [];  // { w, article, theirAnswer, category }
+let currentTopicId = null;
+let answered = false;
+let MAX_ERRORS = 15;
+
+// ══════════════════════════════════════════════════════════════
+// MENU
+// ══════════════════════════════════════════════════════════════
+function buildMenu() {
+  const grid = document.getElementById('cat-grid');
+  CATEGORIES.forEach(cat => {
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.innerHTML = `
+      <span class="cat-icon">${cat.icon}</span>
+      <div class="cat-name">${cat.name}</div>
+      <div class="cat-count">${cat.words.length} Wörter</div>
+    `;
+    card.onclick = () => startGame(cat.id);
+    grid.appendChild(card);
+  });
+}
+
+function shuffle(a) { return [...a].sort(() => Math.random() - .5); }
+
+function startGame(topicId) {
+  currentTopicId = topicId;
+  score = 0; errors = 0; wrongWords = []; qIdx = 0; answered = false;
+
+  if (topicId === 'all') {
+    queue = shuffle(CATEGORIES.flatMap(c => c.words.map(w => ({ ...w, catId: c.id, catName: c.name }))));
+  } else {
+    const cat = CATEGORIES.find(c => c.id === topicId);
+    queue = shuffle(cat.words.map(w => ({ ...w, catId: cat.id, catName: cat.name })));
+  }
+
+  showScreen('game-screen');
+  renderQ();
+  // Auto-speak first word after short delay
+  setTimeout(speakWord, 600);
+}
+
+function goMenu() {
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  showScreen('menu-screen');
+}
+
+function confirmBack() {
+  if (confirm('Möchtest du wirklich zum Menü? Dein Fortschritt geht verloren.')) goMenu();
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER QUESTION
+// ══════════════════════════════════════════════════════════════
+function renderQ() {
+  const q = queue[qIdx];
+  const total = queue.length;
+
+  // Topbar
+  document.getElementById('tb-title').textContent =
+    currentTopicId === 'all' ? '🌍 Alle Themen' : (CATEGORIES.find(c=>c.id===currentTopicId)?.name || 'Diktat');
+  document.getElementById('tb-sub').textContent = `Wort ${qIdx + 1} / ${total}`;
+  document.getElementById('tb-correct').textContent = score;
+  document.getElementById('tb-errors').textContent = errors;
+
+  // Progress
+  const pct = qIdx / total * 100;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-left').textContent = qIdx + ' bearbeitet';
+  document.getElementById('prog-right').textContent = (total - qIdx) + ' übrig';
+
+  // Category pill
+  const cat = CATEGORIES.find(c => c.id === q.catId);
+  document.getElementById('q-category').textContent = (cat?.icon || '') + ' ' + (cat?.name || q.catId);
+
+  // Sentence
+  const hint = q.article ? `Artikel: ${q.article} ___` : 'Was ist das Wort?';
+  document.getElementById('q-hint').textContent = hint;
+
+  if (q.s) {
+    document.getElementById('q-sentence').innerHTML =
+      q.s.replace('___', `<span class="blank-slot">?</span>`);
+  } else {
+    document.getElementById('q-sentence').innerHTML = '📝 Schreib das gehörte Wort auf.';
+  }
+
+  // Reset input + feedback
+  const input = document.getElementById('word-input');
+  input.value = '';
+  input.className = 'word-input';
+  input.disabled = false;
+  input.focus();
+
+  document.getElementById('btn-check').disabled = false;
+
+  const fb = document.getElementById('feedback-box');
+  fb.className = 'feedback-box';
+  fb.style.display = 'none';
+
+  const listenBtn = document.getElementById('listen-btn');
+  listenBtn.classList.remove('playing');
+  document.getElementById('listen-label').textContent = 'Wort vorlesen';
+
+  answered = false;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SPEECH
+// ══════════════════════════════════════════════════════════════
+function speakWord() {
+  const q = queue[qIdx];
+  if (!q) return;
+
+  const btn = document.getElementById('listen-btn');
+  window.speechSynthesis && window.speechSynthesis.cancel();
+
+  const text = q.article ? q.article + ' ' + q.w : q.w;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'de-DE';
+  utter.rate = 0.85;
+  utter.pitch = 1.0;
+
+  btn.classList.add('playing');
+  document.getElementById('listen-label').textContent = 'Wird gesprochen...';
+
+  utter.onend = () => {
+    btn.classList.remove('playing');
+    document.getElementById('listen-label').textContent = '🔊 Nochmal hören';
+    document.getElementById('word-input').focus();
+  };
+
+  utter.onerror = () => {
+    btn.classList.remove('playing');
+    document.getElementById('listen-label').textContent = '🔊 Wort vorlesen';
+  };
+
+  window.speechSynthesis.speak(utter);
+}
+
+// ══════════════════════════════════════════════════════════════
+// CHECK ANSWER
+// ══════════════════════════════════════════════════════════════
+function handleKey(e) {
+  if (e.key === 'Enter' && !answered) checkAnswer();
+}
+
+function normalize(str) {
+  return str.trim().toLowerCase()
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');
+}
+
+function checkAnswer() {
+  if (answered) return;
+  answered = true;
+
+  const q = queue[qIdx];
+  const input = document.getElementById('word-input');
+  const typed = input.value.trim();
+  const correct = q.w;
+
+  // Compare: exact match (case-insensitive) OR allow common umlauts
+  const isCorrect = typed.toLowerCase() === correct.toLowerCase();
+  const nearMatch = !isCorrect && normalize(typed) === normalize(correct);
+
+  const fb = document.getElementById('feedback-box');
+  fb.style.display = '';
+
+  if (isCorrect) {
+    score++;
+    input.className = 'word-input correct';
+    fb.className = 'feedback-box show good';
+    document.getElementById('fb-icon').textContent = GOODS[~~(Math.random() * GOODS.length)];
+    document.getElementById('fb-msg').textContent = 'Richtig geschrieben!';
+    document.getElementById('fb-correct').textContent = '';
+  } else {
+    errors++;
+    input.className = 'word-input wrong';
+    fb.className = 'feedback-box show bad';
+
+    if (nearMatch) {
+      document.getElementById('fb-icon').textContent = '⚠️';
+      document.getElementById('fb-msg').textContent = 'Fast! Achte auf die Umlaute:';
+    } else {
+      document.getElementById('fb-icon').textContent = BADS[~~(Math.random() * BADS.length)];
+      document.getElementById('fb-msg').textContent = 'Nicht ganz. Das richtige Wort:';
+    }
+    document.getElementById('fb-correct').textContent = (q.article ? q.article + ' ' : '') + correct;
+
+    wrongWords.push({
+      w: correct,
+      article: q.article,
+      theirAnswer: typed,
+      catName: q.catName
+    });
+  }
+
+  input.disabled = true;
+  document.getElementById('btn-check').disabled = true;
+  document.getElementById('tb-correct').textContent = score;
+  document.getElementById('tb-errors').textContent = errors;
+
+  // Check if 15 errors reached
+  if (errors >= MAX_ERRORS) {
+    setTimeout(showStop, 1200);
+    return;
+  }
+
+  const isLast = qIdx + 1 >= queue.length;
+  document.getElementById('btn-next').textContent = isLast ? '🏁 Ergebnis →' : 'Weiter →';
+}
+
+const GOODS = ['🎉','⭐','🌟','💪','🏆','✨','👍'];
+const BADS  = ['💭','🔍','🤔','💡'];
+
+function nextWord() {
+  qIdx++;
+  if (qIdx >= queue.length) {
+    showResult(false);
+  } else {
+    renderQ();
+    setTimeout(speakWord, 400);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONFIRM FINISH (Fertig button)
+// ══════════════════════════════════════════════════════════════
+function confirmFinish() {
+  if (confirm('Möchtest du das Diktat jetzt beenden und dein Ergebnis sehen?')) {
+    window.speechSynthesis && window.speechSynthesis.cancel();
+    showResult(false);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// STOP – 15 errors
+// ══════════════════════════════════════════════════════════════
+function showStop() {
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  showScreen('result-screen');
+
+  const cardArea = document.getElementById('result-card-area');
+  cardArea.innerHTML = `
+    <div class="stop-card">
+      <span style="font-size:3.5rem;display:block;margin-bottom:12px">🛑</span>
+      <div class="stop-title">Stopp – 15 Fehler!</div>
+      <div class="stop-msg">
+        Du hast <strong>${errors} Fehler</strong> gemacht.<br>
+        Schreib die falschen Wörter <strong>jetzt in dein Heft</strong> und übe sie.<br>
+        Dann kannst du es nochmal versuchen!
+      </div>
+    </div>
+  `;
+
+  document.querySelector('.copy-hint').style.display = '';
+  showWrongWords();
+
+  document.getElementById('r-retry-btn').textContent = '🔁 Nochmal versuchen';
+  document.getElementById('r-retry-btn').onclick = () => startGame(currentTopicId);
+}
+
+// ══════════════════════════════════════════════════════════════
+// RESULT
+// ══════════════════════════════════════════════════════════════
+function showResult(fromStop) {
+  showScreen('result-screen');
+
+  const total = qIdx; // words actually done
+  const pct = total > 0 ? score / total : 0;
+  let emoji, title, sub;
+
+  if (pct === 1 && total > 0)       [emoji, title, sub] = ['🏆', 'Perfekt!', 'Alle Wörter richtig – du bist ein Rechtschreib-Profi!'];
+  else if (pct >= 0.85)             [emoji, title, sub] = ['🌟', 'Sehr gut!', 'Fast alles richtig – weiter so!'];
+  else if (pct >= 0.70)             [emoji, title, sub] = ['😊', 'Gut gemacht!', 'Die meisten Wörter richtig – übe die falschen nochmal.'];
+  else if (pct >= 0.50)             [emoji, title, sub] = ['💪', 'Weiter üben!', 'Schreib die Wörter in dein Heft und übe sie.'];
+  else                              [emoji, title, sub] = ['📚', 'Üben, üben, üben!', 'Lies die falschen Wörter genau an und schreib sie ab.'];
+
+  const stars = pct === 1 ? '⭐⭐⭐' : pct >= 0.7 ? '⭐⭐' : '⭐';
+
+  const cardArea = document.getElementById('result-card-area');
+  cardArea.innerHTML = `
+    <div class="result-card">
+      <span class="result-emoji">${emoji}</span>
+      <div class="result-title">${title}</div>
+      <div class="result-score">${score}/${total}</div>
+      <div class="result-stars">${stars}</div>
+      <div class="result-sub">${sub}</div>
+    </div>
+  `;
+
+  if (wrongWords.length === 0) {
+    document.querySelector('.copy-hint').style.display = 'none';
+  } else {
+    document.querySelector('.copy-hint').style.display = '';
+  }
+
+  showWrongWords();
+
+  document.getElementById('r-retry-btn').textContent = '🔁 Nochmal';
+  document.getElementById('r-retry-btn').onclick = () => startGame(currentTopicId);
+
+  if (pct >= 0.7 && total >= 5) confetti();
+}
+
+function showWrongWords() {
+  const area = document.getElementById('wrong-section-area');
+  if (!wrongWords.length) {
+    area.innerHTML = '';
+    return;
+  }
+
+  const items = wrongWords.map(w => `
+    <div class="wrong-item">
+      <div class="their-answer">✗ ${w.theirAnswer || '(leer)'}</div>
+      <div class="correct-answer">${(w.article ? w.article + ' ' : '')}${w.w}</div>
+      <div class="article-hint">${w.catName}</div>
+    </div>
+  `).join('');
+
+  area.innerHTML = `
+    <div class="wrong-section">
+      <h3>📖 Diese Wörter ins Heft schreiben und üben (${wrongWords.length}):</h3>
+      <div class="wrong-grid">${items}</div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function confetti() {
+  const colors = ['#38bdf8','#818cf8','#fb923c','#4ade80','#fbbf24','#f472b6'];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'cp';
+      el.style.cssText = `
+        left:${Math.random()*100}vw;
+        top:-20px;
+        background:${colors[~~(Math.random()*colors.length)]};
+        width:${8+Math.random()*8}px;
+        height:${12+Math.random()*6}px;
+        animation-duration:${2.5+Math.random()*2}s;
+        animation-delay:${Math.random()*0.5}s;
+      `;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4500);
+    }, i * 30);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+buildMenu();
+</script>
+</body>
+</html>
