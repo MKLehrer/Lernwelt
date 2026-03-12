@@ -1163,36 +1163,80 @@ function renderQ() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// SPEECH
+// SPEECH – optimiert für iPad (beste deutsche Stimme)
 // ══════════════════════════════════════════════════════════════
+
+// Stimmen-Prioritätsliste für Deutsch auf iPad/iOS
+const VOICE_PRIORITY = [
+  'Anna',          // iOS/macOS – hochwertige Siri-Stimme
+  'Markus',        // iOS/macOS deutsch
+  'Yannick',       // iOS/macOS deutsch
+  'Helena',        // iOS deutsch
+  'de-DE',         // Fallback: irgendeine de-DE Stimme
+  'de-AT',
+  'de-CH',
+];
+
+let bestVoice = null;
+
+function loadVoices() {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return;
+
+  // Suche nach bester Stimme nach Priorität
+  for (const name of VOICE_PRIORITY) {
+    const found = voices.find(v =>
+      v.name.includes(name) || v.lang.startsWith(name)
+    );
+    if (found) { bestVoice = found; break; }
+  }
+
+  // Letzter Fallback: irgendeine deutsche Stimme
+  if (!bestVoice) {
+    bestVoice = voices.find(v => v.lang.startsWith('de')) || null;
+  }
+}
+
+// Stimmen werden auf iOS asynchron geladen
+window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
 function speakWord() {
   const q = queue[qIdx];
   if (!q) return;
 
   const btn = document.getElementById('listen-btn');
-  window.speechSynthesis && window.speechSynthesis.cancel();
+  window.speechSynthesis.cancel();
 
-  const text = q.article ? q.article + ' ' + q.w : q.w;
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'de-DE';
-  utter.rate = 0.85;
-  utter.pitch = 1.0;
+  // Kurze Pause nach cancel() – wichtig auf iOS
+  setTimeout(() => {
+    const text = q.article ? q.article + ' ' + q.w : q.w;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'de-DE';
+    utter.rate = 0.82;   // etwas langsamer = besser für Kinder
+    utter.pitch = 1.0;
+    utter.volume = 1.0;
 
-  btn.classList.add('playing');
-  document.getElementById('listen-label').textContent = 'Wird gesprochen...';
+    // Beste verfügbare Stimme setzen
+    if (!bestVoice) loadVoices();
+    if (bestVoice) utter.voice = bestVoice;
 
-  utter.onend = () => {
-    btn.classList.remove('playing');
-    document.getElementById('listen-label').textContent = '🔊 Nochmal hören';
-    document.getElementById('word-input').focus();
-  };
+    btn.classList.add('playing');
+    document.getElementById('listen-label').textContent = 'Wird gesprochen...';
 
-  utter.onerror = () => {
-    btn.classList.remove('playing');
-    document.getElementById('listen-label').textContent = '🔊 Wort vorlesen';
-  };
+    utter.onend = () => {
+      btn.classList.remove('playing');
+      document.getElementById('listen-label').textContent = '🔊 Nochmal hören';
+      document.getElementById('word-input').focus();
+    };
 
-  window.speechSynthesis.speak(utter);
+    utter.onerror = () => {
+      btn.classList.remove('playing');
+      document.getElementById('listen-label').textContent = '🔊 Wort vorlesen';
+    };
+
+    window.speechSynthesis.speak(utter);
+  }, 100);
 }
 
 // ══════════════════════════════════════════════════════════════
