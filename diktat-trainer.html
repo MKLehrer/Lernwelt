@@ -688,6 +688,7 @@ body::before {
         placeholder="Wort eintippen..."
         autocomplete="off"
         autocorrect="off"
+        autocapitalize="none"
         spellcheck="false"
         onkeydown="handleKey(event)"
       />
@@ -1247,8 +1248,8 @@ function handleKey(e) {
 }
 
 function normalize(str) {
-  return str.trim().toLowerCase()
-    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');
+  return str.trim()
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/Ä/g,'Ae').replace(/Ö/g,'Oe').replace(/Ü/g,'Ue').replace(/ß/g,'ss');
 }
 
 function checkAnswer() {
@@ -1260,9 +1261,25 @@ function checkAnswer() {
   const typed = input.value.trim();
   const correct = q.w;
 
-  // Compare: exact match (case-insensitive) OR allow common umlauts
-  const isCorrect = typed.toLowerCase() === correct.toLowerCase();
-  const nearMatch = !isCorrect && normalize(typed) === normalize(correct);
+  // Exakter Vergleich – Groß/Kleinschreibung zählt!
+  const isCorrect = typed === correct;
+
+  // Nur Schreibfehler bei Umlauten (ae statt ä etc.) – aber Groß/Klein stimmt
+  const nearMatchUmlaut = !isCorrect
+    && normalize(typed) === normalize(correct)
+    && typed.toLowerCase() === correct.toLowerCase();
+
+  // Groß/Klein falsch, sonst aber richtig geschrieben
+  const wrongCase = !isCorrect
+    && !nearMatchUmlaut
+    && typed.toLowerCase() === correct.toLowerCase();
+
+  // Groß/Klein falsch UND Umlaut-Fehler
+  const wrongCaseAndUmlaut = !isCorrect
+    && !nearMatchUmlaut
+    && !wrongCase
+    && normalize(typed.toLowerCase()) === normalize(correct.toLowerCase())
+    && typed.toLowerCase() !== correct.toLowerCase();
 
   const fb = document.getElementById('feedback-box');
   fb.style.display = '';
@@ -1279,13 +1296,24 @@ function checkAnswer() {
     input.className = 'word-input wrong';
     fb.className = 'feedback-box show bad';
 
-    if (nearMatch) {
-      document.getElementById('fb-icon').textContent = '⚠️';
-      document.getElementById('fb-msg').textContent = 'Fast! Achte auf die Umlaute:';
+    let msg;
+    if (nearMatchUmlaut) {
+      msg = 'Fast! Achte auf die Umlaute (ä, ö, ü, ß):';
+    } else if (wrongCase) {
+      const isNoun = correct[0] === correct[0].toUpperCase() && correct[0] !== correct[0].toLowerCase();
+      if (isNoun) {
+        msg = '⚠️ Groß- und Kleinschreibung! Nomen werden groß geschrieben:';
+      } else {
+        msg = '⚠️ Groß- und Kleinschreibung! Dieses Wort wird klein geschrieben:';
+      }
+    } else if (wrongCaseAndUmlaut) {
+      msg = 'Achte auf Groß-/Kleinschreibung und Umlaute:';
     } else {
-      document.getElementById('fb-icon').textContent = BADS[~~(Math.random() * BADS.length)];
-      document.getElementById('fb-msg').textContent = 'Nicht ganz. Das richtige Wort:';
+      msg = BADS[~~(Math.random() * BADS.length)] + ' Nicht ganz. Das richtige Wort:';
     }
+
+    document.getElementById('fb-icon').textContent = wrongCase || wrongCaseAndUmlaut ? '🔠' : '';
+    document.getElementById('fb-msg').textContent = msg;
     document.getElementById('fb-correct').textContent = (q.article ? q.article + ' ' : '') + correct;
 
     wrongWords.push({
