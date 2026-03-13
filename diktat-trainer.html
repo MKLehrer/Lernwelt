@@ -692,7 +692,6 @@ body::before {
         spellcheck="false"
         inputmode="text"
         onkeydown="handleKey(event)"
-        oninput="preventAutoCap(this)"
       />
       <div class="btn-row">
         <button class="btn-check" id="btn-check" onclick="checkAnswer()">✓ Prüfen</button>
@@ -1254,6 +1253,11 @@ function normalize(str) {
     .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/Ä/g,'Ae').replace(/Ö/g,'Oe').replace(/Ü/g,'Ue').replace(/ß/g,'ss');
 }
 
+function isSatzanfang(q) {
+  // Wort steht am Satzanfang wenn der Satz mit ___ beginnt
+  return q.s && q.s.trim().startsWith('___');
+}
+
 function checkAnswer() {
   if (answered) return;
   answered = true;
@@ -1263,36 +1267,62 @@ function checkAnswer() {
   const typed = input.value.trim();
   const correct = q.w;
 
-  // Exakter Vergleich – Groß/Kleinschreibung zählt!
+  // Prüfen ob Wort am Satzanfang steht
+  const amSatzanfang = isSatzanfang(q);
+
+  // Exakter Vergleich
   const isCorrect = typed === correct;
 
-  // Nur Schreibfehler bei Umlauten (ae statt ä etc.) – aber Groß/Klein stimmt
-  const nearMatchUmlaut = !isCorrect
+  // Satzanfang-Sonderfall: Wort normalerweise klein, aber am Satzanfang groß nötig
+  // z.B. "gestern" → am Satzanfang muss "Gestern" geschrieben werden
+  const correctAmSatzanfang = amSatzanfang
+    ? correct[0].toUpperCase() + correct.slice(1)
+    : correct;
+
+  const isCorrectSatzanfang = amSatzanfang && typed === correctAmSatzanfang;
+
+  // Nur Umlaut-Fehler (ae statt ä etc.) – Groß/Klein stimmt
+  const nearMatchUmlaut = !isCorrect && !isCorrectSatzanfang
     && normalize(typed) === normalize(correct)
     && typed.toLowerCase() === correct.toLowerCase();
 
-  // Groß/Klein falsch, sonst aber richtig geschrieben
-  const wrongCase = !isCorrect
-    && !nearMatchUmlaut
+  // Groß/Klein falsch, sonst richtig geschrieben
+  const wrongCase = !isCorrect && !isCorrectSatzanfang && !nearMatchUmlaut
     && typed.toLowerCase() === correct.toLowerCase();
 
   // Groß/Klein falsch UND Umlaut-Fehler
-  const wrongCaseAndUmlaut = !isCorrect
-    && !nearMatchUmlaut
-    && !wrongCase
-    && normalize(typed.toLowerCase()) === normalize(correct.toLowerCase())
-    && typed.toLowerCase() !== correct.toLowerCase();
+  const wrongCaseAndUmlaut = !isCorrect && !isCorrectSatzanfang && !nearMatchUmlaut && !wrongCase
+    && normalize(typed.toLowerCase()) === normalize(correct.toLowerCase());
+
+  // Satzanfang klein geschrieben (eigentlich richtig, nur Großschreibung fehlt)
+  const satzanfangKlein = amSatzanfang && !isCorrect && !isCorrectSatzanfang
+    && typed.toLowerCase() === correct.toLowerCase()
+    && typed[0] === typed[0].toLowerCase();
 
   const fb = document.getElementById('feedback-box');
   fb.style.display = '';
 
-  if (isCorrect) {
+  if (isCorrect || isCorrectSatzanfang) {
     score++;
     input.className = 'word-input correct';
     fb.className = 'feedback-box show good';
     document.getElementById('fb-icon').textContent = GOODS[~~(Math.random() * GOODS.length)];
-    document.getElementById('fb-msg').textContent = 'Richtig geschrieben!';
+    if (isCorrectSatzanfang && !isCorrect) {
+      document.getElementById('fb-msg').textContent = 'Richtig! Am Satzanfang wird großgeschrieben.';
+    } else {
+      document.getElementById('fb-msg').textContent = 'Richtig geschrieben!';
+    }
     document.getElementById('fb-correct').textContent = '';
+
+  } else if (satzanfangKlein) {
+    // Kein Fehler zählen – nur Hinweis, kein Eintrag in Fehlerliste
+    score++;
+    input.className = 'word-input correct';
+    fb.className = 'feedback-box show good';
+    document.getElementById('fb-icon').textContent = '📝';
+    document.getElementById('fb-msg').textContent = 'Fast! Am Satzanfang wird immer großgeschrieben: ' + correctAmSatzanfang;
+    document.getElementById('fb-correct').textContent = '';
+
   } else {
     errors++;
     input.className = 'word-input wrong';
@@ -1303,18 +1333,16 @@ function checkAnswer() {
       msg = 'Fast! Achte auf die Umlaute (ä, ö, ü, ß):';
     } else if (wrongCase) {
       const isNoun = correct[0] === correct[0].toUpperCase() && correct[0] !== correct[0].toLowerCase();
-      if (isNoun) {
-        msg = '⚠️ Groß- und Kleinschreibung! Nomen werden groß geschrieben:';
-      } else {
-        msg = '⚠️ Groß- und Kleinschreibung! Dieses Wort wird klein geschrieben:';
-      }
+      msg = isNoun
+        ? '🔠 Nomen werden großgeschrieben:'
+        : '🔠 Dieses Wort wird kleingeschrieben:';
     } else if (wrongCaseAndUmlaut) {
       msg = 'Achte auf Groß-/Kleinschreibung und Umlaute:';
     } else {
       msg = BADS[~~(Math.random() * BADS.length)] + ' Nicht ganz. Das richtige Wort:';
     }
 
-    document.getElementById('fb-icon').textContent = wrongCase || wrongCaseAndUmlaut ? '🔠' : '';
+    document.getElementById('fb-icon').textContent = '';
     document.getElementById('fb-msg').textContent = msg;
     document.getElementById('fb-correct').textContent = (q.article ? q.article + ' ' : '') + correct;
 
@@ -1486,33 +1514,6 @@ function confetti() {
   }
 }
 
-// ══════════════════════════════════════════════════════════════
-// AUTO-GROSSSCHREIBUNG VERHINDERN (iPad)
-// ══════════════════════════════════════════════════════════════
-function preventAutoCap(input) {
-  // Merke Cursor-Position
-  const start = input.selectionStart;
-  const end   = input.selectionEnd;
-  const val   = input.value;
-
-  // Nur eingreifen wenn das erste Zeichen groß ist UND
-  // das korrekte Wort klein beginnt
-  const q = queue[qIdx];
-  if (!q) return;
-
-  const correctFirstChar = q.w[0];
-  const typedFirstChar   = val[0];
-
-  // Wenn das Wort klein beginnen soll, aber groß getippt wurde → korrigieren
-  if (
-    typedFirstChar &&
-    correctFirstChar === correctFirstChar.toLowerCase() &&
-    typedFirstChar !== typedFirstChar.toLowerCase()
-  ) {
-    input.value = typedFirstChar.toLowerCase() + val.slice(1);
-    input.setSelectionRange(start, end);
-  }
-}
 
 // ══════════════════════════════════════════════════════════════
 // INIT
