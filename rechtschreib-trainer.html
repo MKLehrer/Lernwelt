@@ -562,15 +562,10 @@ function renderQ() {
   pill.textContent = topic.name;
   pill.style.cssText = `background:${topic.cLight};color:${topic.cText}`;
 
-  // Focus label – bei Fallen-Wörtern speziellen Hinweis zeigen
+  // Focus label – immer denselben neutralen Hinweis zeigen (kein Achtung bei Fallen)
   const focusEl = document.getElementById('focus-label');
-  if (q.trap) {
-    focusEl.innerHTML = '🪤 Achtung – schau genau hin!';
-    focusEl.style.cssText = 'color:#b45309;background:#fef3c7;border-radius:8px;padding:4px 10px;display:inline-block';
-  } else {
-    focusEl.textContent = topic.focusLabel;
-    focusEl.style.cssText = '';
-  }
+  focusEl.textContent = topic.focusLabel;
+  focusEl.style.cssText = '';
 
   // Sentence
   document.getElementById('q-sentence').innerHTML =
