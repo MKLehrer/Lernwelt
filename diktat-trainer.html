@@ -690,7 +690,9 @@ body::before {
         autocorrect="off"
         autocapitalize="none"
         spellcheck="false"
+        inputmode="text"
         onkeydown="handleKey(event)"
+        oninput="preventAutoCap(this)"
       />
       <div class="btn-row">
         <button class="btn-check" id="btn-check" onclick="checkAnswer()">✓ Prüfen</button>
@@ -878,12 +880,12 @@ const CATEGORIES = [
   {
     id:"bewegung", name:"Bewegung & Sport", icon:"⚽",
     words:[
-      { w:"laufen",     article:null,   s:"Ich ___ so schnell ich kann." },
+      { w:"laufen",     article:null,   s:"Wir ___ so schnell wir können." },
       { w:"springen",   article:null,   s:"Wir ___ über den Bach." },
       { w:"schwimmen",  article:null,   s:"Im Sommer ___ wir im See." },
       { w:"turnen",     article:null,   s:"Wir ___ in der Turnhalle." },
       { w:"klettern",   article:null,   s:"Die Kinder ___ auf den Baum." },
-      { w:"werfen",     article:null,   s:"Ich ___ den Ball weit." },
+      { w:"werfen",     article:null,   s:"Wir ___ den Ball weit." },
       { w:"fangen",     article:null,   s:"Kannst du den Ball ___?" },
       { w:"Sport",      article:"der",  s:"___ hält uns gesund." },
       { w:"Sprung",     article:"der",  s:"Der ___ über die Pfütze gelingt." },
@@ -950,25 +952,25 @@ const CATEGORIES = [
   {
     id:"verben", name:"Verben & Tätigkeiten", icon:"✋",
     words:[
-      { w:"suchen",     article:null,   s:"Ich ___ meine Brille." },
+      { w:"suchen",     article:null,   s:"Ich suche meine Brille. Wir ___." },
       { w:"finden",     article:null,   s:"Kannst du das Buch ___?" },
-      { w:"geben",      article:null,   s:"Ich ___ dir das Heft." },
-      { w:"nehmen",     article:null,   s:"___ dir ein Stück Kuchen." },
+      { w:"geben",      article:null,   s:"Wir ___ dir das Heft." },
+      { w:"nehmen",     article:null,   s:"Wir ___ uns ein Stück Kuchen." },
       { w:"bringen",    article:null,   s:"Kannst du mir das Buch ___?" },
-      { w:"helfen",     article:null,   s:"Ich ___ meiner Mutter." },
+      { w:"helfen",     article:null,   s:"Wir ___ unserer Mutter." },
       { w:"lernen",     article:null,   s:"Wir ___ jeden Tag Neues." },
       { w:"arbeiten",   article:null,   s:"Papa muss ___ gehen." },
-      { w:"antworten",  article:null,   s:"Ich ___ auf die Frage." },
-      { w:"warten",     article:null,   s:"Ich ___ auf den Bus." },
+      { w:"antworten",  article:null,   s:"Wir ___ auf die Frage." },
+      { w:"warten",     article:null,   s:"Wir ___ auf den Bus." },
       { w:"kaufen",     article:null,   s:"Wir ___ Brot beim Bäcker." },
-      { w:"kochen",     article:null,   s:"Mama ___ Suppe." },
-      { w:"schlafen",   article:null,   s:"Das Baby ___ tief." },
-      { w:"träumen",    article:null,   s:"Ich ___ von einem Abenteuer." },
-      { w:"öffnen",     article:null,   s:"Ich ___ das Fenster." },
+      { w:"kochen",     article:null,   s:"Wir ___ eine Suppe." },
+      { w:"schlafen",   article:null,   s:"Die Kinder ___ tief." },
+      { w:"träumen",    article:null,   s:"Wir ___ von einem Abenteuer." },
+      { w:"öffnen",     article:null,   s:"Wir ___ das Fenster." },
       { w:"schließen",  article:null,   s:"Bitte ___ die Tür." },
       { w:"stören",     article:null,   s:"Bitte nicht ___!" },
       { w:"schützen",   article:null,   s:"Wir ___ die Tiere." },
-      { w:"riechen",    article:null,   s:"Die Blume ___ schön." },
+      { w:"riechen",    article:null,   s:"Die Blumen ___ schön." },
       { w:"leuchten",   article:null,   s:"Die Sterne ___ hell." },
     ]
   },
@@ -1036,17 +1038,17 @@ const CATEGORIES = [
       { w:"Gruß",       article:"der",  s:"Viele Grüße sendet ___ ..." },
       { w:"Spaß",       article:"der",  s:"Das macht mir ___ !" },
       { w:"Klasse",     article:"die",  s:"Unsere ___ macht einen Ausflug." },
-      { w:"wissen",     article:null,   s:"Ich ___ die Antwort." },
+      { w:"wissen",     article:null,   s:"Wir ___ die Antwort." },
       { w:"müssen",     article:null,   s:"Wir ___ jetzt gehen." },
       { w:"essen",      article:null,   s:"Wir ___ Mittagessen." },
-      { w:"lassen",     article:null,   s:"Ich ___ das Buch liegen." },
+      { w:"lassen",     article:null,   s:"Wir ___ das Buch liegen." },
       { w:"Wasser",     article:"das",  s:"Ich trinke viel ___ ." },
       { w:"vergessen",  article:null,   s:"Ich habe mein Heft ___ ." },
       { w:"fahren",     article:null,   s:"Wir ___ mit dem Zug." },
-      { w:"zahlen",     article:null,   s:"Ich ___ an der Kasse." },
+      { w:"zahlen",     article:null,   s:"Wir ___ an der Kasse." },
       { w:"zählen",     article:null,   s:"Wir ___ bis zehn." },
-      { w:"wählen",     article:null,   s:"Ich ___ meine Lieblingsspeise." },
-      { w:"erzählen",   article:null,   s:"Ich ___ eine Geschichte." },
+      { w:"wählen",     article:null,   s:"Wir ___ unsere Lieblingsspeise." },
+      { w:"erzählen",   article:null,   s:"Wir ___ eine Geschichte." },
       { w:"Rahmen",     article:"der",  s:"Das Bild hängt im ___ ." },
     ]
   },
@@ -1481,6 +1483,34 @@ function confetti() {
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 4500);
     }, i * 30);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUTO-GROSSSCHREIBUNG VERHINDERN (iPad)
+// ══════════════════════════════════════════════════════════════
+function preventAutoCap(input) {
+  // Merke Cursor-Position
+  const start = input.selectionStart;
+  const end   = input.selectionEnd;
+  const val   = input.value;
+
+  // Nur eingreifen wenn das erste Zeichen groß ist UND
+  // das korrekte Wort klein beginnt
+  const q = queue[qIdx];
+  if (!q) return;
+
+  const correctFirstChar = q.w[0];
+  const typedFirstChar   = val[0];
+
+  // Wenn das Wort klein beginnen soll, aber groß getippt wurde → korrigieren
+  if (
+    typedFirstChar &&
+    correctFirstChar === correctFirstChar.toLowerCase() &&
+    typedFirstChar !== typedFirstChar.toLowerCase()
+  ) {
+    input.value = typedFirstChar.toLowerCase() + val.slice(1);
+    input.setSelectionRange(start, end);
   }
 }
 
